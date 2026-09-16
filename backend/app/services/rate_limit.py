@@ -55,3 +55,18 @@ async def download_rate_limit(client_ip: str) -> None:
         max_requests=settings.rate_limit_downloads_per_minute,
         window_seconds=60,
     )
+
+
+async def password_attempt_rate_limit(client_ip: str, slug: str) -> None:
+    """
+    Deliberately tight: password-unlock attempts (text or files) are a
+    brute-force target in a way plain downloads aren't, since a wrong
+    guess costs the attacker nothing but a request. Keyed per IP *and*
+    per slug so repeated wrong guesses on one drop don't lock a client
+    out of unlocking a different drop.
+    """
+    await check_rate_limit(
+        f"unlock:{client_ip}:{slug}",
+        max_requests=settings.rate_limit_password_attempts_per_minute,
+        window_seconds=60,
+    )

@@ -18,7 +18,12 @@ from app.schemas.drop import (
     UnlockRequest,
 )
 from app.services import drop_service
-from app.services.rate_limit import RateLimitExceeded, download_rate_limit, upload_rate_limit
+from app.services.rate_limit import (
+    RateLimitExceeded,
+    download_rate_limit,
+    password_attempt_rate_limit,
+    upload_rate_limit,
+)
 from app.services.storage import storage_service
 
 router = APIRouter(prefix="/api/drops", tags=["drops"])
@@ -183,12 +188,26 @@ async def get_drop_meta(slug: str, db: AsyncSession = Depends(get_db)):
         drop_type=drop.drop_type.value,
         requires_password=drop.password_hash is not None,
         is_expired=drop.is_expired(),
-        files=[DropFileOut.from_model(f) for f in drop.files] if drop.files else [],
+        # Filenames and sizes are real content metadata, not safe to expose
+        # ahead of a password check — a password-protected drop's file list
+        # must stay hidden until the password has been verified server-side.
+        files=(
+            [DropFileOut.from_model(f) for f in drop.files]
+            if drop.files and drop.password_hash is None
+            else []
+        ),
     )
 
 
 @router.post("/{slug}/unlock/text", response_model=TextDropContentOut)
-async def unlock_text_drop(slug: str, payload: UnlockRequest | None = None, db: AsyncSession = Depends(get_db)):
+async def unlock_text_drop(
+    slug: str, request: Request, payload: UnlockRequest | None = None, db: AsyncSession = Depends(get_db)
+):
+    try:
+        await password_attempt_rate_limit(_client_ip(request), slug)
+    except RateLimitExceeded as e:
+        raise HTTPException(429, detail=f"Too many attempts. Try again in {e.retry_after}s")
+
     try:
         drop = await drop_service.get_drop_by_slug(db, slug)
     except drop_service.DropNotFoundError:
@@ -216,6 +235,43 @@ async def unlock_text_drop(slug: str, payload: UnlockRequest | None = None, db: 
             raise HTTPException(410, detail="This drop has reached its view limit")
 
     return TextDropContentOut(text_content=drop.text_content, text_language=drop.text_language)
+
+
+@router.post("/{slug}/unlock/files", response_model=list[DropFileOut])
+async def unlock_file_drop(
+    slug: str, request: Request, payload: UnlockRequest | None = None, db: AsyncSession = Depends(get_db)
+):
+    """
+    Password-gated peek at a file drop's contents. The /meta endpoint never
+    includes filenames/sizes for a password-protected drop — this endpoint
+    is the only way to see them, and it requires the password up front,
+    same as the text-drop unlock path. It does not consume a download
+    (view-once/download-count aren't touched here); actual consumption
+    still happens per-file at the download endpoint below.
+    """
+    try:
+        await password_attempt_rate_limit(_client_ip(request), slug)
+    except RateLimitExceeded as e:
+        raise HTTPException(429, detail=f"Too many attempts. Try again in {e.retry_after}s")
+
+    try:
+        drop = await drop_service.get_drop_with_files(db, slug)
+    except drop_service.DropNotFoundError:
+        raise HTTPException(404, detail="Drop not found")
+
+    if drop.drop_type == DropType.TEXT:
+        raise HTTPException(400, detail="Not a file drop")
+    if drop.is_expired():
+        raise HTTPException(410, detail="This drop has expired")
+
+    try:
+        drop_service.check_password(drop, payload.password if payload else None)
+    except drop_service.DropPasswordRequiredError:
+        raise HTTPException(401, detail="Password required")
+    except drop_service.DropPasswordIncorrectError:
+        raise HTTPException(403, detail="Incorrect password")
+
+    return [DropFileOut.from_model(f) for f in drop.files]
 
 
 @router.post("/{slug}/download/{file_id}", response_model=DownloadUrlOut)

@@ -7,12 +7,7 @@ import {
   getCodeMirrorExtensions,
   useCodeMirrorTheme,
 } from '../utils/codemirror';
-import {
-  getDropMeta,
-  unlockTextDrop,
-  getDownloadUrl,
-  ApiError,
-} from '../api/client';
+import { getDropMeta, unlockTextDrop, unlockFileDrop, getDownloadUrl, ApiError } from '../api/client';
 
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B';
@@ -29,8 +24,10 @@ export default function ReceivePage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [password, setPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState(null);
   const [textContent, setTextContent] = useState(null);
+  const [unlockedFiles, setUnlockedFiles] = useState(null);
   const [consumedNotice, setConsumedNotice] = useState(null);
 
   useEffect(() => {
@@ -69,6 +66,16 @@ export default function ReceivePage() {
     try {
       const content = await unlockTextDrop(slug, password || undefined);
       setTextContent(content);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Couldn't open this drop.");
+    }
+  };
+
+  const handleUnlockFiles = async () => {
+    setError(null);
+    try {
+      const files = await unlockFileDrop(slug, password || undefined);
+      setUnlockedFiles(files);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Couldn't open this drop.");
     }
@@ -145,8 +152,15 @@ export default function ReceivePage() {
   }
 
   const isTextDrop = meta.drop_type === 'text';
-  const needsPassword = meta.requires_password && !textContent;
+  const isFilesUnlocked = unlockedFiles !== null;
+  const needsPassword =
+    meta.requires_password && !(isTextDrop ? textContent : isFilesUnlocked);
   const showTextUnlock = isTextDrop && !textContent;
+  const showFilesUnlock = !isTextDrop && needsPassword;
+  // Filenames/sizes come from meta only when the drop has no password; once
+  // a password is required, they only ever come from the unlock response —
+  // meta.files is intentionally empty for protected drops (see backend).
+  const filesToShow = isFilesUnlocked ? unlockedFiles : meta.files;
 
   return (
     <div className="card">
@@ -174,23 +188,60 @@ export default function ReceivePage() {
         <h2 className="status-title">
           {isTextDrop
             ? 'Shared text'
-            : meta.files.length > 1
+            : filesToShow.length > 1 || (needsPassword && !isFilesUnlocked)
               ? 'Shared files'
               : 'Shared file'}
         </h2>
       </div>
 
-      {showTextUnlock && (
+      {(showTextUnlock || showFilesUnlock) && (
         <div className="unlock-row">
           {needsPassword && (
-            <input
-              type="password"
-              className="text-input"
-              placeholder="Enter password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoFocus
-            />
+            <div className="password-field">
+              <input
+                type={passwordVisible ? 'text' : 'password'}
+                className="text-input"
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoFocus
+              />
+              <button
+                type="button"
+                className="password-visibility-toggle"
+                onClick={() => setPasswordVisible((v) => !v)}
+                aria-label={passwordVisible ? 'Hide password' : 'Show password'}
+                aria-pressed={passwordVisible}
+              >
+                {passwordVisible ? (
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <path
+                      d="M2 2l14 14M7.5 7.6a2.1 2.1 0 0 0 2.9 2.9M5 4.8C3 6 1.8 7.7 1.3 9c1 2.6 3.9 5.5 7.7 5.5 1.3 0 2.5-.3 3.6-.9M11 3.9c-.6-.2-1.3-.3-2-.3-3.8 0-6.7 2.9-7.7 5.5"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <path
+                      d="M1.3 9c1-2.6 3.9-5.5 7.7-5.5S15.7 6.4 16.7 9c-1 2.6-3.9 5.5-7.7 5.5S2.3 11.6 1.3 9Z"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinejoin="round"
+                    />
+                    <circle
+                      cx="9"
+                      cy="9"
+                      r="2.1"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
           )}
 
           {isTextDrop ? (
@@ -198,9 +249,7 @@ export default function ReceivePage() {
               {needsPassword ? 'Unlock' : 'Open text'}
             </Button>
           ) : (
-            <p className="status-body">
-              Enter the password, then tap a file below to download it.
-            </p>
+            <Button onClick={handleUnlockFiles}>Unlock</Button>
           )}
         </div>
       )}
@@ -225,9 +274,9 @@ export default function ReceivePage() {
         </div>
       )}
 
-      {!isTextDrop && (!needsPassword || meta.requires_password) && (
+      {!isTextDrop && !needsPassword && (
         <ul className="download-list">
-          {meta.files.map((file) => (
+          {filesToShow.map((file) => (
             <li key={file.id} className="download-row">
               <div className="download-row-meta">
                 <span className="file-row-name">{file.original_filename}</span>

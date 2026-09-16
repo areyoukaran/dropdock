@@ -443,6 +443,37 @@
   margin-bottom: var(--space-3);
 }
 
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-field .text-input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.password-visibility-toggle {
+  position: absolute;
+  right: var(--space-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--color-ink-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.password-visibility-toggle:hover {
+  color: var(--color-ink-secondary);
+  background: var(--color-surface);
+}
+
 .received-text {
   margin-top: var(--space-1);
 }

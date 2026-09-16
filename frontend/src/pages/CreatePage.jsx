@@ -90,6 +90,11 @@ export default function CreatePage() {
       return;
     }
 
+    if (options.password && options.password.length < 4) {
+      setError('Password must be at least 4 characters.');
+      return;
+    }
+
     setIsSubmitting(true);
     setProgress(0);
 

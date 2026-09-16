@@ -25,6 +25,7 @@ class Settings(BaseSettings):
 
     rate_limit_uploads_per_hour: int = 20
     rate_limit_downloads_per_minute: int = 30
+    rate_limit_password_attempts_per_minute: int = 5
 
     max_file_size_mb: int = 500
     max_drop_size_mb: int = 1000

@@ -9,12 +9,39 @@ class ApiError extends Error {
   }
 }
 
+// FastAPI returns error detail in two different shapes depending on the
+// failure type:
+//   - A manually raised HTTPException: detail is a plain string.
+//   - A Pydantic validation error (422): detail is an ARRAY of objects,
+//     each shaped like { type, loc, msg, ctx }.
+// Rendering the array directly (e.g. via string interpolation) produces
+// "[object Object]" instead of a readable message. This normalizes both
+// shapes into one human-readable string.
+function extractErrorMessage(body, fallback) {
+  const detail = body && body.detail;
+  if (!detail) return fallback;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => {
+        if (!item || typeof item !== "object") return null;
+        const field = Array.isArray(item.loc) ? item.loc[item.loc.length - 1] : null;
+        const msg = typeof item.msg === "string" ? item.msg : null;
+        if (field && msg) return `${field}: ${msg}`;
+        return msg || null;
+      })
+      .filter(Boolean);
+    if (messages.length > 0) return messages.join("; ");
+  }
+  return fallback;
+}
+
 async function handleResponse(res) {
   if (!res.ok) {
     let detail = "Something went wrong";
     try {
       const body = await res.json();
-      detail = body.detail || detail;
+      detail = extractErrorMessage(body, detail);
     } catch {
       // no json body
     }
@@ -94,7 +121,7 @@ export async function createFileDrop({ files, expiryMode, timeExpiry, maxDownloa
           resolve(body);
         }
       } else {
-        reject(new ApiError(body.detail || "Upload failed", xhr.status));
+        reject(new ApiError(extractErrorMessage(body, "Upload failed"), xhr.status));
       }
     };
 
@@ -111,6 +138,14 @@ export async function getDropMeta(slug) {
 
 export async function unlockTextDrop(slug, password) {
   return request(`${API_BASE}/api/drops/${encodeURIComponent(slug)}/unlock/text`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(password ? { password } : {}),
+  });
+}
+
+export async function unlockFileDrop(slug, password) {
+  return request(`${API_BASE}/api/drops/${encodeURIComponent(slug)}/unlock/files`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(password ? { password } : {}),

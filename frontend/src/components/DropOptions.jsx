@@ -190,7 +190,11 @@ export default function DropOptions({ options, onChange }) {
           onChange={(event) => updateOptions({ password: event.target.value })}
           placeholder="Add a password"
           autoComplete="new-password"
+          minLength={4}
         />
+        {password && password.length > 0 && password.length < 4 && (
+          <p className="password-hint">At least 4 characters</p>
+        )}
       </div>
     </div>
   );
