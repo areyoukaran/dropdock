@@ -1,0 +1,180 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/*
+  DropZone design system
+  Spacing: 8px, 16px, 24px, 32px, 48px, 64px only.
+  Radius: small 8px, medium 12px, large 16px only.
+  Type: 13px/400, 15px/500, 17px/400, 24px/600, 32px/600 only.
+  Grid: the composer uses CSS Grid with explicit 1.4fr 1fr columns.
+*/
+
+:root {
+  --color-bg: #eef2f7;
+  --color-bg-elevated: #e6ecf4;
+  --color-surface: #e2e9f2;
+  --color-surface-raised: #ffffff;
+  --color-panel: rgba(255, 255, 255, 0.74);
+  --color-ink: #1b2028;
+  --color-ink-secondary: #4f5d6e;
+  --color-ink-tertiary: #69778a;
+  --color-accent: #076edb;
+  --color-accent-hover: #0a76e8;
+  --color-accent-warm: #ff9500;
+  --color-on-accent: #ffffff;
+  --color-on-ink: #ffffff;
+  --color-ink-deep: #000000;
+  --color-border: #c4cedb;
+  --color-border-subtle: #d7e0ea;
+  --color-danger: #d70015;
+  --color-success: #1d7d3a;
+  --color-shadow: rgba(0, 0, 0, 0.08);
+  --color-shadow-soft: rgba(0, 0, 0, 0.04);
+  --color-shadow-faint: rgba(0, 0, 0, 0.03);
+  --color-highlight: rgba(255, 255, 255, 0.15);
+  --color-focus-ring: color-mix(in srgb, var(--color-accent) 18%, transparent);
+
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 48px;
+  --space-6: 64px;
+
+  --font-family:
+    'Inter', -apple-system, 'SF Pro Display', 'SF Pro Text', 'Segoe UI',
+    system-ui, Roboto, Helvetica, Arial, sans-serif;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  --shadow-card:
+    0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+  --shadow-elevated:
+    0 2px 4px rgba(15, 23, 42, 0.05), 0 18px 42px rgba(15, 23, 42, 0.1);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root[data-theme='dark'] {
+  --color-bg: #000000;
+  --color-bg-elevated: #121214;
+  --color-surface: #232325;
+  --color-surface-raised: #303033;
+  --color-ink: #f5f5f7;
+  --color-ink-secondary: #b5b5bb;
+  --color-ink-tertiary: #a6a6ad;
+  --color-accent: #409cff;
+  --color-accent-hover: #55a8ff;
+  --color-on-accent: #ffffff;
+  --color-on-ink: #000000;
+  --color-ink-deep: #000000;
+  --color-border: rgba(255, 255, 255, 0.12);
+  --color-border-subtle: rgba(255, 255, 255, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+}
+
+@media (max-width: 767px) {
+  body {
+    overflow-y: auto;
+  }
+}
+
+body {
+  position: relative;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-family);
+  font-size: 17px;
+  line-height: 1.47;
+  letter-spacing: -0.02em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  content: '';
+  pointer-events: none;
+  opacity: 0.018;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='.55'/%3E%3C/svg%3E");
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+}
+
+::selection {
+  background: rgba(11, 124, 255, 0.18);
+}
+
+:is(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .mode-tab-indicator,
+  .mode-tab,
+  .theme-option,
+  .pill,
+  .downloads-input-reveal {
+    transition: none !important;
+  }
+
+  .dropzone-idle .dropzone-icon svg {
+    animation: none !important;
+  }
+
+  .form-error,
+  .progress-fill::after {
+    animation: none !important;
+  }
+
+  .editor-icon-button {
+    transition: none !important;
+  }
+}

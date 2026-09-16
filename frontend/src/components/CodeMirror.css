@@ -1,0 +1,59 @@
+.code-mirror-surface {
+  height: 240px;
+  min-height: 240px;
+  max-height: 240px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    180deg,
+    var(--color-surface-raised) 0%,
+    color-mix(in srgb, var(--color-surface-raised) 86%, transparent) 100%
+  );
+  transition: border-color 0.2s var(--ease-out);
+}
+
+.code-mirror-surface:focus-within {
+  border-color: var(--color-accent);
+}
+
+.code-mirror-surface .cm-editor {
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  background: transparent;
+  color: var(--color-ink);
+}
+
+.code-mirror-surface .cm-scroller {
+  height: 100%;
+  overflow: auto;
+  overflow-x: hidden;
+  font-family: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.code-mirror-surface .cm-content {
+  min-height: 168px;
+  padding: var(--space-2);
+  caret-color: var(--color-ink);
+}
+
+.code-mirror-surface .cm-line {
+  padding: 0;
+}
+
+.code-mirror-surface .cm-gutters {
+  border: none;
+  background: transparent;
+}
+
+.code-mirror-surface .cm-focused {
+  outline: none;
+}
+
+.code-mirror-surface .cm-selectionBackground,
+.code-mirror-surface .cm-content ::selection {
+  background: var(--color-focus-ring);
+}

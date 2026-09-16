@@ -1,0 +1,128 @@
+.text-composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.text-composer-editor {
+  height: 240px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.text-composer-editor-wrap {
+  position: relative;
+}
+
+.editor-icon-button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 0.2s var(--ease-out),
+    color 0.2s var(--ease-out),
+    transform 0.15s var(--ease-out);
+}
+
+.editor-icon-button:hover {
+  background: var(--color-border-subtle);
+  color: var(--color-ink);
+}
+
+.editor-icon-button:active {
+  transform: scale(0.96);
+}
+
+.editor-icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.editor-expand-button {
+  position: absolute;
+  z-index: 2;
+  top: var(--space-1);
+  right: var(--space-1);
+}
+
+.editor-modal-backdrop {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  padding: 5vh 5vw;
+  background: color-mix(in srgb, var(--color-ink-deep) 45%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editor-modal {
+  width: min(90vw, 1200px);
+  height: 90vh;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-elevated);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.editor-modal-header,
+.editor-modal-actions {
+  display: flex;
+  align-items: center;
+}
+
+.editor-modal-header {
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.editor-modal-header h2 {
+  color: var(--color-ink);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.editor-modal-eyebrow {
+  color: var(--color-ink-tertiary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.editor-modal-actions {
+  gap: var(--space-1);
+}
+
+.editor-modal-language {
+  align-self: auto;
+}
+
+.code-mirror-surface.editor-modal-editor {
+  height: calc(90vh - 120px);
+  min-height: 0;
+  max-height: none;
+  flex: 1;
+}
+
+.text-composer-lang {
+  align-self: flex-start;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--color-ink-secondary);
+  background: var(--color-surface-raised);
+  cursor: pointer;
+}
