@@ -10,7 +10,7 @@ function Header({ theme, setTheme }) {
     <header className="app-header">
       <div className="top-bar">
         <Link to="/" className="brand">
-          DropZone
+          DropDock
         </Link>
 
         <div className="theme-toggle" aria-label="Theme switcher">

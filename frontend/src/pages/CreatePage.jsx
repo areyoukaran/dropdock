@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import DropZone from '../components/DropZone';
+import DropDock from '../components/DropDock';
 import FileList from '../components/FileList';
 import DropOptions from '../components/DropOptions';
 import ShareResult from '../components/ShareResult';
@@ -199,7 +199,7 @@ export default function CreatePage() {
         <div className="composer-surface">
           {mode === 'files' ? (
             <>
-              <DropZone
+              <DropDock
                 onFilesSelected={handleFilesSelected}
                 disabled={isSubmitting}
                 isEmpty={files.length === 0}

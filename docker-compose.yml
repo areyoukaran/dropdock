@@ -1,25 +1,25 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: dropzone-postgres
+    container_name: dropdock-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: dropzone
-      POSTGRES_PASSWORD: dropzone
-      POSTGRES_DB: dropzone
+      POSTGRES_USER: dropdock
+      POSTGRES_PASSWORD: dropdock
+      POSTGRES_DB: dropdock
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dropzone"]
+      test: ["CMD-SHELL", "pg_isready -U dropdock"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: dropzone-redis
+    container_name: dropdock-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -31,12 +31,12 @@ services:
 
   minio:
     image: quay.io/minio/minio:latest
-    container_name: dropzone-minio
+    container_name: dropdock-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: dropzone
-      MINIO_ROOT_PASSWORD: dropzone123
+      MINIO_ROOT_USER: dropdock
+      MINIO_ROOT_PASSWORD: dropdock123
     ports:
       - "9000:9000"   # S3 API
       - "9001:9001"   # Web console
@@ -50,7 +50,7 @@ services:
 
   backend:
     build: ./backend
-    container_name: dropzone-backend
+    container_name: dropdock-backend
     restart: unless-stopped
     env_file:
       - ./backend/.env
@@ -68,7 +68,7 @@ services:
 
   worker:
     build: ./backend
-    container_name: dropzone-worker
+    container_name: dropdock-worker
     restart: unless-stopped
     command: celery -A app.workers.celery_app worker --loglevel=info
     env_file:
@@ -85,7 +85,7 @@ services:
 
   beat:
     build: ./backend
-    container_name: dropzone-beat
+    container_name: dropdock-beat
     restart: unless-stopped
     command: celery -A app.workers.celery_app beat --loglevel=info
     env_file:

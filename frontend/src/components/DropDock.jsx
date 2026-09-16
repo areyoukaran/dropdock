@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
-import './DropZone.css';
+import './DropDock.css';
 
-export default function DropZone({ onFilesSelected, disabled, isEmpty }) {
+export default function DropDock({ onFilesSelected, disabled, isEmpty }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef(null);
 
