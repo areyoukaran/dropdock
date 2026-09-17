@@ -37,23 +37,29 @@ export default function CreatePage() {
 
   useEffect(() => {
     let isCurrent = true;
+    let retryTimer;
 
-    getHealth()
-    .then(() => {
+    const checkHealth = async () => {
+      try {
+        await getHealth();
+
         if (isCurrent) {
-            setServiceError(null);
+          setServiceError(null);
         }
-    })
-    .catch(() => {
+      } catch {
         if (isCurrent) {
-            setServiceError(
-                "Couldn't reach the service. You can keep preparing your drop and try again shortly."
-            );
+          // Render may be waking from a cold start.
+          // Retry instead of permanently showing an error.
+          retryTimer = setTimeout(checkHealth, 5000);
         }
-    });
+      }
+    };
+
+    checkHealth();
 
     return () => {
       isCurrent = false;
+      clearTimeout(retryTimer);
     };
   }, []);
 
