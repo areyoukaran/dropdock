@@ -38,12 +38,18 @@ export default function CreatePage() {
   useEffect(() => {
     let isCurrent = true;
 
-    getHealth().catch(() => {
-      if (isCurrent) {
-        setServiceError(
-          "Couldn't reach the service. You can keep preparing your drop and try again shortly.",
-        );
-      }
+    getHealth()
+    .then(() => {
+        if (isCurrent) {
+            setServiceError(null);
+        }
+    })
+    .catch(() => {
+        if (isCurrent) {
+            setServiceError(
+                "Couldn't reach the service. You can keep preparing your drop and try again shortly."
+            );
+        }
     });
 
     return () => {
