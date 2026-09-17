@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+const API_BASE = "https://YOUR-RENDER-BACKEND-URL.onrender.com";
 const REQUEST_TIMEOUT_MS = 15_000;
 
 class ApiError extends Error {
