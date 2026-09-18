@@ -1,4 +1,5 @@
-const API_BASE = "https://dropdock-api.onrender.com";
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 const REQUEST_TIMEOUT_MS = 15_000;
 
 class ApiError extends Error {
