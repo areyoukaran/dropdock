@@ -524,20 +524,39 @@
   min-width: 0;
 }
 
+/* --- Mobile --- */
+
 @media (max-width: 767px) {
   .app-shell {
-    min-height: 100dvh;
-    overflow-y: auto;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
     padding: 0 var(--space-2);
   }
 
+  .app-header {
+    flex: 0 0 auto;
+    padding-top: 10px;
+  }
+
   .app-main {
-    padding: var(--space-3) 0 var(--space-2);
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 0;
+    padding: 8px 0;
+    overflow: hidden;
+  }
+
+  .app-footer {
+    display: none;
   }
 
   .composer-shell {
     grid-template-columns: 1fr;
-    min-height: auto;
+    gap: 8px;
+    min-height: 0;
   }
 
   .mode-tab,
@@ -545,13 +564,13 @@
   .pill,
   .option-toggle,
   .view-once-toggle {
-    min-height: 44px;
+    min-height: 28px;
   }
 
   .file-row-remove,
   .editor-icon-button {
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
   }
 
   .pill-row {
@@ -574,95 +593,235 @@
 }
 
 @media (max-width: 560px) {
+  .app-shell {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   .app-header {
-    padding-top: 16px;
+    padding-top: 8px;
   }
 
   .top-bar {
     width: 100%;
   }
 
+  .brand {
+    font-size: 14px;
+  }
+
+  .theme-option {
+    padding: 5px 9px;
+    font-size: 12px;
+  }
+
   .app-main {
-    align-items: flex-start;
+    align-items: center;
+    justify-content: center;
     width: 100%;
-    padding: 20px 0 16px;
+    min-height: 0;
+    padding: 6px 0;
+    overflow: hidden;
   }
 
   .card {
     width: 100%;
-    padding: 12px;
+    max-height: calc(100dvh - 60px);
+    padding: 7px;
     border-radius: var(--radius-lg);
+    overflow: hidden;
   }
 
   .composer-shell {
-    gap: 12px;
+    gap: 7px;
+    min-height: 0;
   }
 
   .composer-panel {
-    padding: 16px;
+    min-width: 0;
+    padding: 9px;
     border-radius: var(--radius-md);
   }
 
   .left-panel {
-    gap: 16px;
+    gap: 7px;
   }
 
   .right-panel {
-    padding: 16px;
+    padding: 9px;
   }
 
   .panel-heading {
-    gap: 8px;
+    gap: 4px;
   }
 
   .panel-heading h1 {
     max-width: none;
-    font-size: 28px;
-    line-height: 1.08;
+    font-size: 22px;
+    line-height: 1.02;
     letter-spacing: -0.025em;
   }
 
   .privacy-badge {
-    font-size: 12px;
-    padding: 7px 10px;
+    font-size: 10px;
+    padding: 4px 7px;
   }
 
   .mode-tabs {
-    width: 100%;
-    max-width: 180px;
+    width: 148px;
+    margin-top: 0;
+  }
+
+  .mode-tab {
+    min-height: 32px;
+    padding: 4px 9px;
+    font-size: 13px;
   }
 
   .dropzone {
-    padding: 40px 20px;
-    min-height: 300px;
+    min-height: 0;
+    height: 142px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
   .dropzone-icon {
-    width: 64px;
-    height: 64px;
+    width: 44px;
+    height: 44px;
+    margin-bottom: 5px;
   }
 
   .dropzone-icon svg {
-    width: 42px;
-    height: 42px;
+    width: 28px;
+    height: 28px;
   }
 
   .dropzone-title {
-    font-size: 17px;
+    font-size: 15px;
+    margin-bottom: 2px;
   }
 
   .dropzone-subtitle {
-    font-size: 14px;
-    line-height: 1.45;
+    font-size: 11px;
+    line-height: 1.25;
   }
 
   .dropzone-hint {
-    font-size: 12px;
-    line-height: 1.45;
+    margin-top: 2px;
+    font-size: 9px;
+    line-height: 1.25;
+  }
+
+  .settings-heading {
+    padding-bottom: 1px;
+  }
+
+  .settings-caption {
+    font-size: 10px;
+    line-height: 1.25;
+    margin-top: 2px;
+  }
+
+  .eyebrow {
+    font-size: 10px;
+  }
+
+  .drop-options {
+    gap: 4px;
+  }
+
+  .expiry-controls {
+    gap: 4px;
+  }
+
+  .option-toggle,
+  .view-once-toggle {
+    min-height: 26px;
+    gap: 5px;
+    font-size: 11px;
+  }
+
+  .checkbox-box {
+    flex-basis: 16px;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+  }
+
+  .checkbox-box svg {
+    width: 10px;
+    height: 10px;
+  }
+
+  .pill-row {
+    gap: 4px;
+    padding-left: 21px;
+  }
+
+  .pill {
+    min-height: 24px;
+    padding: 4px 7px;
+    font-size: 10px;
+  }
+
+  .view-once-toggle {
+    padding-top: 4px;
+  }
+
+  .expiry-summary {
+    font-size: 9px;
+    line-height: 1.25;
+    padding-top: 4px;
+  }
+
+  .password-group {
+    margin-top: 1px;
+    gap: 3px;
+  }
+
+  .option-label {
+    font-size: 9px;
+  }
+
+  .text-input {
+    min-height: 30px;
+    padding: 4px 7px;
+    font-size: 11px;
+  }
+
+  .password-hint {
+    font-size: 9px;
+    margin-top: 1px;
   }
 
   .submit-row {
-    margin-top: 16px;
+    margin-top: 5px;
+  }
+
+  .btn-md {
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .progress-track {
+    height: 3px;
+    margin-top: 5px;
+  }
+
+  .form-error {
+    font-size: 9px;
+    padding: 4px 6px;
+    margin-top: 4px;
+  }
+
+  .form-error svg {
+    width: 11px;
+    height: 11px;
   }
 }
 
