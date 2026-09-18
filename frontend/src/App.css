@@ -574,25 +574,95 @@
 }
 
 @media (max-width: 560px) {
+  .app-header {
+    padding-top: 16px;
+  }
+
+  .top-bar {
+    width: 100%;
+  }
+
   .app-main {
-    align-items: center;
-    padding-top: var(--space-3);
+    align-items: flex-start;
+    width: 100%;
+    padding: 20px 0 16px;
   }
 
   .card {
-    padding: var(--space-3);
+    width: 100%;
+    padding: 12px;
+    border-radius: var(--radius-lg);
   }
 
-  .dropzone {
-    padding: var(--space-6) var(--space-3);
+  .composer-shell {
+    gap: 12px;
   }
 
-  .panel-heading h1 {
-    font-size: 32px;
+  .composer-panel {
+    padding: 16px;
+    border-radius: var(--radius-md);
+  }
+
+  .left-panel {
+    gap: 16px;
   }
 
   .right-panel {
-    padding: var(--space-3);
+    padding: 16px;
+  }
+
+  .panel-heading {
+    gap: 8px;
+  }
+
+  .panel-heading h1 {
+    max-width: none;
+    font-size: 28px;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+  }
+
+  .privacy-badge {
+    font-size: 12px;
+    padding: 7px 10px;
+  }
+
+  .mode-tabs {
+    width: 100%;
+    max-width: 180px;
+  }
+
+  .dropzone {
+    padding: 40px 20px;
+    min-height: 300px;
+  }
+
+  .dropzone-icon {
+    width: 64px;
+    height: 64px;
+  }
+
+  .dropzone-icon svg {
+    width: 42px;
+    height: 42px;
+  }
+
+  .dropzone-title {
+    font-size: 17px;
+  }
+
+  .dropzone-subtitle {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .dropzone-hint {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .submit-row {
+    margin-top: 16px;
   }
 }
 
