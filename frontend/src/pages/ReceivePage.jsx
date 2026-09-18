@@ -258,6 +258,24 @@ export default function ReceivePage() {
 
       {isTextDrop && textContent && (
         <div className="received-text">
+          <div className="received-text-header">
+            <span>Shared text</span>
+
+            <button
+              type="button"
+              className="received-copy-button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(textContent.text_content);
+                } catch {
+                  setError("Couldn't copy the text.");
+                }
+              }}
+            >
+              Copy
+            </button>
+          </div>
+
           <CodeMirror
             className="code-mirror-surface received-code-editor"
             value={textContent.text_content}

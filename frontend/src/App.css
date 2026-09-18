@@ -830,3 +830,44 @@
     animation: none;
   }
 }
+
+.received-text {
+  margin-top: var(--space-1);
+}
+
+.received-text-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+  color: var(--color-ink-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.received-copy-button {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  color: var(--color-ink-secondary);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s var(--ease-out),
+    border-color 0.2s var(--ease-out),
+    color 0.2s var(--ease-out);
+}
+
+.received-copy-button:hover {
+  border-color: var(--color-ink-tertiary);
+  color: var(--color-ink);
+  background: var(--color-surface);
+}
+
+.received-copy-button:active {
+  transform: scale(0.97);
+}
