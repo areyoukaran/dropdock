@@ -7,7 +7,14 @@ import {
   getCodeMirrorExtensions,
   useCodeMirrorTheme,
 } from '../utils/codemirror';
-import { getDropMeta, unlockTextDrop, unlockFileDrop, getDownloadUrl, ApiError } from '../api/client';
+import {
+  getDropMeta,
+  unlockTextDrop,
+  unlockFileDrop,
+  getDownloadUrl,
+  ApiError,
+} from '../api/client';
+import { copyText } from '../utils/clipboard';
 
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B';
@@ -29,6 +36,8 @@ export default function ReceivePage() {
   const [textContent, setTextContent] = useState(null);
   const [unlockedFiles, setUnlockedFiles] = useState(null);
   const [consumedNotice, setConsumedNotice] = useState(null);
+  const [unlocking, setUnlocking] = useState(false);
+  const [textCopied, setTextCopied] = useState(false);
 
   useEffect(() => {
     let isCurrent = true;
@@ -62,22 +71,30 @@ export default function ReceivePage() {
   }, [slug]);
 
   const handleUnlockText = async () => {
+    if (unlocking) return;
     setError(null);
+    setUnlocking(true);
     try {
       const content = await unlockTextDrop(slug, password || undefined);
       setTextContent(content);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Couldn't open this drop.");
+    } finally {
+      setUnlocking(false);
     }
   };
 
   const handleUnlockFiles = async () => {
+    if (unlocking) return;
     setError(null);
+    setUnlocking(true);
     try {
       const files = await unlockFileDrop(slug, password || undefined);
       setUnlockedFiles(files);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Couldn't open this drop.");
+    } finally {
+      setUnlocking(false);
     }
   };
 
@@ -245,11 +262,13 @@ export default function ReceivePage() {
           )}
 
           {isTextDrop ? (
-            <Button onClick={handleUnlockText}>
-              {needsPassword ? 'Unlock' : 'Open text'}
+            <Button onClick={handleUnlockText} disabled={unlocking}>
+              {unlocking ? 'Opening…' : needsPassword ? 'Unlock' : 'Open text'}
             </Button>
           ) : (
-            <Button onClick={handleUnlockFiles}>Unlock</Button>
+            <Button onClick={handleUnlockFiles} disabled={unlocking}>
+              {unlocking ? 'Opening…' : 'Unlock'}
+            </Button>
           )}
         </div>
       )}
@@ -258,24 +277,29 @@ export default function ReceivePage() {
 
       {isTextDrop && textContent && (
         <div className="received-text">
-          <div className="received-text-header">
-            <span>Shared text</span>
-
+          <div className="received-text-toolbar">
+            <span className="received-text-hint">
+              Shared text · select to copy part of it
+            </span>
             <button
               type="button"
-              className="received-copy-button"
+              className="received-copy-btn"
               onClick={async () => {
                 try {
-                  await navigator.clipboard.writeText(textContent.text_content);
+                  const copiedSuccessfully = await copyText(
+                    textContent.text_content,
+                  );
+                  if (!copiedSuccessfully) throw new Error('copy failed');
+                  setTextCopied(true);
+                  window.setTimeout(() => setTextCopied(false), 1600);
                 } catch {
                   setError("Couldn't copy the text.");
                 }
               }}
             >
-              Copy
+              {textCopied ? 'Copied' : 'Copy all'}
             </button>
           </div>
-
           <CodeMirror
             className="code-mirror-surface received-code-editor"
             value={textContent.text_content}

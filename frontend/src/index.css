@@ -8,30 +8,23 @@
   Grid: the composer uses CSS Grid with explicit 1.4fr 1fr columns.
 */
 
+/*
+  Color tokens (--color-*) are defined once, in App.css, to avoid two
+  competing :root blocks fighting over the same custom properties — that
+  was the actual cause of the palette mismatch against the design mockups
+  (index.css's blue accent silently overriding App.css's warm accent,
+  or vice versa, depending on Vite's CSS chunk order). Non-color tokens
+  (spacing, radius, shadows, easing) stay here since App.css doesn't
+  define its own versions of those.
+*/
+
 :root {
-  --color-bg: #eef2f7;
-  --color-bg-elevated: #e6ecf4;
-  --color-surface: #e2e9f2;
-  --color-surface-raised: #ffffff;
-  --color-panel: rgba(255, 255, 255, 0.74);
-  --color-ink: #1b2028;
-  --color-ink-secondary: #4f5d6e;
-  --color-ink-tertiary: #69778a;
-  --color-accent: #076edb;
-  --color-accent-hover: #0a76e8;
-  --color-accent-warm: #ff9500;
-  --color-on-accent: #ffffff;
-  --color-on-ink: #ffffff;
-  --color-ink-deep: #000000;
-  --color-border: #c4cedb;
-  --color-border-subtle: #d7e0ea;
   --color-danger: #d70015;
   --color-success: #1d7d3a;
   --color-shadow: rgba(0, 0, 0, 0.08);
   --color-shadow-soft: rgba(0, 0, 0, 0.04);
   --color-shadow-faint: rgba(0, 0, 0, 0.03);
   --color-highlight: rgba(255, 255, 255, 0.15);
-  --color-focus-ring: color-mix(in srgb, var(--color-accent) 18%, transparent);
 
   --space-1: 8px;
   --space-2: 16px;
@@ -39,10 +32,6 @@
   --space-4: 32px;
   --space-5: 48px;
   --space-6: 64px;
-
-  --font-family:
-    'Inter', -apple-system, 'SF Pro Display', 'SF Pro Text', 'Segoe UI',
-    system-ui, Roboto, Helvetica, Arial, sans-serif;
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -56,23 +45,6 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-:root[data-theme='dark'] {
-  --color-bg: #000000;
-  --color-bg-elevated: #121214;
-  --color-surface: #232325;
-  --color-surface-raised: #303033;
-  --color-ink: #f5f5f7;
-  --color-ink-secondary: #b5b5bb;
-  --color-ink-tertiary: #a6a6ad;
-  --color-accent: #409cff;
-  --color-accent-hover: #55a8ff;
-  --color-on-accent: #ffffff;
-  --color-on-ink: #000000;
-  --color-ink-deep: #000000;
-  --color-border: rgba(255, 255, 255, 0.12);
-  --color-border-subtle: rgba(255, 255, 255, 0.08);
-}
-
 * {
   box-sizing: border-box;
 }
@@ -84,27 +56,13 @@ body {
   height: 100%;
 }
 
-@media (max-width: 767px) {
-  body {
-    overflow-y: auto;
-  }
-}
-
-body {
-  position: relative;
-  background: var(--color-bg);
-  color: var(--color-ink);
-  font-family: var(--font-family);
-  font-size: 17px;
-  line-height: 1.47;
-  letter-spacing: -0.02em;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
-}
+/*
+  body's background, color, font, and overflow behavior are all owned by
+  App.css's body rule (which correctly uses overflow-x: hidden only — the
+  overflow: hidden shorthand previously here also hid overflow-y, which
+  was the actual cause of content being clipped/cut off on mobile instead
+  of scrolling). Only non-conflicting, purely decorative rules stay here.
+*/
 
 body::before {
   position: fixed;

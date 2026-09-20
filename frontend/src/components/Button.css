@@ -1,22 +1,13 @@
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  border: none;
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background 0.2s var(--ease-out),
-    transform 0.2s var(--ease-out),
-    opacity 0.2s,
-    box-shadow 0.2s var(--ease-out);
-  white-space: nowrap;
-  box-shadow:
-    0 1px 1px color-mix(in srgb, var(--color-ink-deep) 4%, transparent),
-    0 4px 10px color-mix(in srgb, var(--color-ink-deep) 3%, transparent);
-}
+/*
+  The shared base .btn rule (padding-free layout primitives: display,
+  align-items, cursor, transition) is defined once in App.css, matching
+  the design mockups exactly (height, radius, background, font-size for
+  the primary "Create drop" button). Defining it again here previously
+  caused a silent conflict — two rules of equal specificity targeting the
+  same class, with whichever loaded later in the bundle winning
+  unpredictably. Only variant/size modifier classes (not applied by
+  App.css) stay in this file.
+*/
 
 .btn:active {
   transform: scale(0.97);

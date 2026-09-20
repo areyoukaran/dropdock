@@ -1,3 +1,4 @@
+import { useEffect, useMemo } from 'react';
 import './FileList.css';
 
 function formatBytes(bytes) {
@@ -12,6 +13,20 @@ function isImage(file) {
 }
 
 export default function FileList({ files, onRemove }) {
+  const imageUrls = useMemo(() => {
+    const urls = new Map();
+    files.forEach((file, index) => {
+      if (isImage(file)) urls.set(index, URL.createObjectURL(file));
+    });
+    return urls;
+  }, [files]);
+
+  useEffect(() => {
+    return () => {
+      imageUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [imageUrls]);
+
   if (!files.length) return null;
 
   return (
@@ -20,14 +35,10 @@ export default function FileList({ files, onRemove }) {
         <li key={`${file.name}-${i}`} className="file-row">
           <div className="file-row-icon">
             {isImage(file) ? (
-              <img
-                src={URL.createObjectURL(file)}
-                alt=""
-                className="file-thumb"
-              />
+              <img src={imageUrls.get(i)} alt="" className="file-thumb" />
             ) : (
               <div className="file-generic-icon">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                   <path
                     d="M4 2h6l4 4v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"
                     stroke="currentColor"
@@ -45,7 +56,7 @@ export default function FileList({ files, onRemove }) {
             )}
           </div>
           <div className="file-row-meta">
-            <span className="file-row-name">{file.name}</span>
+            <span className="file-row-name" title={file.name}>{file.name}</span>
             <span className="file-row-size">{formatBytes(file.size)}</span>
           </div>
           <button
@@ -53,8 +64,9 @@ export default function FileList({ files, onRemove }) {
             className="file-row-remove"
             onClick={() => onRemove(i)}
             aria-label={`Remove ${file.name}`}
+            title="Remove file"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <path
                 d="M3 3l8 8M11 3l-8 8"
                 stroke="currentColor"

@@ -55,6 +55,7 @@ export default function DropDock({ onFilesSelected, disabled, isEmpty }) {
         type="file"
         multiple
         hidden
+        disabled={disabled}
         onChange={(e) => {
           const files = Array.from(e.target.files);
           if (files.length) onFilesSelected(files);
@@ -62,30 +63,9 @@ export default function DropDock({ onFilesSelected, disabled, isEmpty }) {
         }}
       />
       <div className="dropzone-icon">
-        <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
-          <path
-            d="M20 6v20M20 6l-7 7M20 6l7 7"
-            stroke="currentColor"
-            strokeWidth="2.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity="0.15"
-            transform="translate(1 1)"
-          />
-          <path
-            d="M20 6v20M20 6l-7 7M20 6l7 7"
-            stroke="currentColor"
-            strokeWidth="2.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M7 27v3a3 3 0 0 0 3 3h20a3 3 0 0 0 3-3v-3"
-            stroke="currentColor"
-            strokeWidth="2.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+        <svg width="66" height="66" viewBox="0 0 64 64" fill="none">
+          <path d="M20 42h-4a12 12 0 0 1-2-23.8A18 18 0 0 1 48 22a11 11 0 0 1-1 22h-4" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M32 48V25m0 0-9 9m9-9 9 9" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </div>
       <p className="dropzone-title">Drop files here</p>

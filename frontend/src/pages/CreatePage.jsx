@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DropDock from '../components/DropDock';
 import FileList from '../components/FileList';
 import DropOptions from '../components/DropOptions';
@@ -24,7 +25,10 @@ const DEFAULT_OPTIONS = {
 };
 
 export default function CreatePage() {
-  const [mode, setMode] = useState('files'); // "files" | "text"
+  const [searchParams] = useSearchParams();
+  const [mode, setMode] = useState(() =>
+    searchParams.get('mode') === 'text' ? 'text' : 'files',
+  );
   const [files, setFiles] = useState([]);
   const [textContent, setTextContent] = useState('');
   const [textLanguage, setTextLanguage] = useState('');
@@ -62,6 +66,15 @@ export default function CreatePage() {
       clearTimeout(retryTimer);
     };
   }, []);
+
+
+  useEffect(() => {
+    const requestedMode = searchParams.get('mode');
+    if (requestedMode === 'files' || requestedMode === 'text') {
+      setMode(requestedMode);
+    }
+  }, [searchParams]);
+
 
   const handleFilesSelected = (newFiles) => {
     setFiles((prev) => [...prev, ...newFiles]);
@@ -110,13 +123,24 @@ export default function CreatePage() {
     setIsSubmitting(true);
     setProgress(0);
 
+    // expiryMode can be null in DropOptions' internal state only when both
+    // the time and download toggles are off — a state the submit button is
+    // already disabled for (see hasExpiry above). Resolving a concrete
+    // mode here regardless keeps the payload valid even if that guard is
+    // ever loosened later, rather than relying solely on the disabled
+    // button as the only thing preventing a null expiry_mode from
+    // reaching the API.
+    const resolvedExpiryMode =
+      options.expiryMode ??
+      (options.timeEnabled ? 'time' : options.downloadsEnabled ? 'download_count' : 'time');
+
     try {
       const timeExpiry =
-        options.expiryMode !== 'view_once' && options.timeEnabled
+        resolvedExpiryMode !== 'view_once' && options.timeEnabled
           ? options.timeExpiry
           : null;
       const maxDownloads =
-        options.expiryMode !== 'view_once' && options.downloadsEnabled
+        resolvedExpiryMode !== 'view_once' && options.downloadsEnabled
           ? options.maxDownloads
           : null;
       let drop;
@@ -124,7 +148,7 @@ export default function CreatePage() {
         drop = await createFileDrop(
           {
             files,
-            expiryMode: options.expiryMode,
+            expiryMode: resolvedExpiryMode,
             timeExpiry,
             maxDownloads,
             password: options.password,
@@ -135,7 +159,7 @@ export default function CreatePage() {
         drop = await createTextDrop({
           textContent,
           textLanguage,
-          expiryMode: options.expiryMode,
+          expiryMode: resolvedExpiryMode,
           timeExpiry,
           maxDownloads,
           password: options.password,
@@ -172,11 +196,11 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="card composer-shell">
+    <div id="drop-composer" className="card composer-shell">
       <div className="composer-panel left-panel">
         <div className="panel-heading">
-          <h1>Share something simply.</h1>
-          <span className="privacy-badge">Private by default</span>
+          <h1>Share files, <span>effortlessly.</span></h1>
+          <p className="panel-description">Fast. Private. No signup. Files and text that disappear when you’re done.</p>
         </div>
         <div
           className={`mode-tabs${mode === 'text' ? ' mode-tabs-text-active' : ''}`}
@@ -186,9 +210,7 @@ export default function CreatePage() {
           <span className="mode-tab-indicator" aria-hidden="true" />
           <button
             type="button"
-            className={
-              mode === 'files' ? 'mode-tab mode-tab-active' : 'mode-tab'
-            }
+            className={mode === 'files' ? 'mode-tab mode-tab-active' : 'mode-tab'}
             onClick={() => setMode('files')}
             role="tab"
             aria-selected={mode === 'files'}
@@ -254,9 +276,10 @@ export default function CreatePage() {
             disabled={!canSubmit || isSubmitting}
             onClick={handleSubmit}
           >
-            {isSubmitting ? 'Creating…' : 'Create drop'}
+            {isSubmitting ? 'Creating…' : <>Create drop <span className="create-arrow" aria-hidden="true">→</span></>}
           </Button>
         </div>
+        <p className="privacy-note"><span className="privacy-lock" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="10" width="12" height="10" rx="2"/><path d="M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10"/><path d="M12 14v3"/></svg></span> Private by default. No accounts. No tracking.</p>
       </aside>
     </div>
   );

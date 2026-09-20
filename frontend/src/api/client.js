@@ -1,6 +1,7 @@
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
-const REQUEST_TIMEOUT_MS = 15_000;
+const API_BASE = (
+  import.meta.env.VITE_API_BASE_URL || 'https://dropdock-api.onrender.com'
+).replace(/\/+$/, '');
+const REQUEST_TIMEOUT_MS = 60_000;
 
 class ApiError extends Error {
   constructor(message, status) {
@@ -100,7 +101,7 @@ export async function createFileDrop({ files, expiryMode, timeExpiry, maxDownloa
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `${API_BASE}/api/drops/files`);
-    xhr.timeout = REQUEST_TIMEOUT_MS;
+    xhr.timeout = 120_000;
 
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress) {

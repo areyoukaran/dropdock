@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import './ShareResult.css';
+import { copyText } from '../utils/clipboard';
 
 function expiryLabel(drop) {
   if (drop.expiry_mode === 'time' && drop.expires_at) {
@@ -23,9 +24,14 @@ export default function ShareResult({ drop, onReset }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(drop.share_url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+    try {
+      const copiedSuccessfully = await copyText(drop.share_url);
+      if (!copiedSuccessfully) return;
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+    }
   };
 
   return (

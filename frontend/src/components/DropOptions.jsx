@@ -6,6 +6,34 @@ const TIME_OPTIONS = [
   { value: '7d', label: '7 days' },
 ];
 
+function IconClock() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>;
+}
+function IconDownload() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5"/><path d="M4 17v3h16v-3"/></svg>;
+}
+function IconEye() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg>;
+}
+function IconLock() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/></svg>;
+}
+
+function Switch({ checked, onChange, label }) {
+  return (
+    <button
+      type="button"
+      className={`settings-switch${checked ? ' is-on' : ''}`}
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+    >
+      <span />
+    </button>
+  );
+}
+
 export default function DropOptions({ options, onChange }) {
   const {
     expiryMode,
@@ -15,28 +43,28 @@ export default function DropOptions({ options, onChange }) {
     timeEnabled: storedTimeEnabled,
     downloadsEnabled: storedDownloadsEnabled,
   } = options;
+
   const isViewOnce = expiryMode === 'view_once';
   const timeEnabled = storedTimeEnabled ?? expiryMode === 'time';
-  const downloadsEnabled =
-    storedDownloadsEnabled ?? expiryMode === 'download_count';
+  const downloadsEnabled = storedDownloadsEnabled ?? expiryMode === 'download_count';
 
   const updateOptions = (changes) => onChange({ ...options, ...changes });
 
   const setTimeEnabled = (enabled) => {
+    // expiryMode is a convenience label, not the source of truth (CreatePage
+    // reads timeEnabled/downloadsEnabled directly when submitting) — but it
+    // should still never claim a mode that's actually off, to avoid
+    // confusing/inconsistent internal state.
     updateOptions({
       timeEnabled: enabled,
-      expiryMode: enabled
-        ? 'time'
-        : downloadsEnabled
-          ? 'download_count'
-          : 'time',
+      expiryMode: enabled ? 'time' : downloadsEnabled ? 'download_count' : null,
     });
   };
 
   const setDownloadsEnabled = (enabled) => {
     updateOptions({
       downloadsEnabled: enabled,
-      expiryMode: enabled ? 'download_count' : timeEnabled ? 'time' : 'time',
+      expiryMode: enabled ? 'download_count' : timeEnabled ? 'time' : null,
     });
   };
 
@@ -52,150 +80,83 @@ export default function DropOptions({ options, onChange }) {
     });
   };
 
-  const timeLabel =
-    TIME_OPTIONS.find((option) => option.value === timeExpiry)?.label ??
-    'a time period';
-  const downloadLabel = maxDownloads
-    ? `after ${maxDownloads} download${maxDownloads === '1' ? '' : 's'}`
-    : 'after downloads';
-  const summary = isViewOnce
-    ? "Disappears after it's viewed once"
-    : timeEnabled && downloadsEnabled
-      ? `Expires in ${timeLabel} or ${downloadLabel}, whichever comes first`
-      : timeEnabled
-        ? `Expires in ${timeLabel}`
-        : downloadsEnabled
-          ? `Expires ${downloadLabel}`
-          : 'No expiry set';
-
   return (
     <div className="drop-options">
-      <div className={`expiry-controls${isViewOnce ? ' is-disabled' : ''}`}>
-        <label className="option-toggle">
-          <input
-            type="checkbox"
-            checked={!isViewOnce && timeEnabled}
-            disabled={isViewOnce}
-            onChange={(event) => setTimeEnabled(event.target.checked)}
-          />
-          <span className="checkbox-box" aria-hidden="true">
-            <svg viewBox="0 0 16 16" fill="none">
-              <path
-                d="m3 8 3 3 7-7"
-                stroke="var(--color-on-accent)"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
-          <span>Expire after a time period</span>
-        </label>
-
-        {!isViewOnce && timeEnabled && (
-          <div className="pill-row">
-            {TIME_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={
-                  timeExpiry === option.value ? 'pill pill-active' : 'pill'
-                }
-                onClick={() => updateOptions({ timeExpiry: option.value })}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <label className="option-toggle">
-          <input
-            type="checkbox"
-            checked={!isViewOnce && downloadsEnabled}
-            disabled={isViewOnce}
-            onChange={(event) => setDownloadsEnabled(event.target.checked)}
-          />
-          <span className="checkbox-box" aria-hidden="true">
-            <svg viewBox="0 0 16 16" fill="none">
-              <path
-                d="m3 8 3 3 7-7"
-                stroke="var(--color-on-accent)"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
-          <span>Expire after N downloads</span>
-        </label>
-
-        <div
-          className={`downloads-input-reveal${!isViewOnce && downloadsEnabled ? ' is-visible' : ''}`}
-          aria-hidden={isViewOnce || !downloadsEnabled}
-        >
-          <div className="downloads-input-inner">
-            <input
-              id="max-downloads"
-              type="number"
-              min={1}
-              max={1000}
-              className="text-input"
-              value={maxDownloads}
-              disabled={isViewOnce || !downloadsEnabled}
-              onChange={(event) =>
-                updateOptions({ maxDownloads: event.target.value })
-              }
-              placeholder="5"
-            />
+      <section className="settings-section expiration-section">
+        <div className="setting-intro">
+          <span className="setting-icon"><IconClock /></span>
+          <div>
+            <div className="setting-title">Expiration</div>
+            <div className="setting-description">Files will be automatically deleted</div>
           </div>
         </div>
-      </div>
+        <div className="pill-row">
+          {TIME_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={`pill${timeExpiry === option.value && !isViewOnce ? ' pill-active' : ''}`}
+              disabled={isViewOnce}
+              onClick={() => updateOptions({ timeExpiry: option.value, timeEnabled: true, expiryMode: 'time' })}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
-      <label className={`view-once-toggle${isViewOnce ? ' is-selected' : ''}`}>
-        <input
-          type="checkbox"
-          checked={isViewOnce}
-          onChange={(event) => setViewOnce(event.target.checked)}
-        />
-        <span className="checkbox-box" aria-hidden="true">
-          <svg viewBox="0 0 16 16" fill="none">
-            <path
-              d="m3 8 3 3 7-7"
-              stroke="var(--color-on-accent)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
-        <span>View once</span>
-      </label>
+      <section className="settings-section setting-row">
+        <span className="setting-icon"><IconDownload /></span>
+        <div className="setting-copy">
+          <div className="setting-title">Limit downloads</div>
+          <div className="setting-description">Set a maximum number of downloads</div>
+        </div>
+        <Switch checked={!isViewOnce && downloadsEnabled} onChange={setDownloadsEnabled} label="Limit downloads" />
+      </section>
 
-      <p
-        className={`expiry-summary${!isViewOnce && !timeEnabled && !downloadsEnabled ? ' is-warning' : ''}`}
-      >
-        {summary}
-      </p>
+      {downloadsEnabled && !isViewOnce && (
+        <div className="download-limit-input">
+          <input
+            id="max-downloads"
+            type="number"
+            min={1}
+            max={1000}
+            value={maxDownloads}
+            onChange={(event) => updateOptions({ maxDownloads: event.target.value })}
+            placeholder="5"
+            aria-label="Maximum downloads"
+          />
+        </div>
+      )}
 
-      <div className="option-group password-group">
-        <label className="option-label" htmlFor="drop-password">
-          Password <span className="option-optional">(optional)</span>
-        </label>
+      <section className="settings-section setting-row">
+        <span className="setting-icon"><IconEye /></span>
+        <div className="setting-copy">
+          <div className="setting-title">View once</div>
+          <div className="setting-description">File can only be viewed one time</div>
+        </div>
+        <Switch checked={isViewOnce} onChange={setViewOnce} label="View once" />
+      </section>
+
+      <section className="settings-section password-setting">
+        <div className="setting-intro">
+          <span className="setting-icon"><IconLock /></span>
+          <div className="setting-copy">
+            <div className="setting-title">Password <span className="option-optional">(optional)</span></div>
+            <div className="setting-description">Add a password to restrict access</div>
+          </div>
+        </div>
         <input
           id="drop-password"
           type="password"
-          className="text-input"
+          className="password-input"
           value={password}
           onChange={(event) => updateOptions({ password: event.target.value })}
-          placeholder="Add a password"
+          placeholder="Enter a password"
           autoComplete="new-password"
           minLength={4}
         />
-        {password && password.length > 0 && password.length < 4 && (
-          <p className="password-hint">At least 4 characters</p>
-        )}
-      </div>
+      </section>
     </div>
   );
 }

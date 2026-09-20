@@ -81,7 +81,7 @@ export default function TextComposer({
           extensions={getCodeMirrorExtensions(language)}
           theme={theme}
           basicSetup
-        placeholder="Paste text or code…"
+          placeholder="Paste text or code…"
           disabled={disabled}
           height="240px"
         />

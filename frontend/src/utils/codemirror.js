@@ -22,20 +22,13 @@ export function getCodeMirrorExtensions(language, includeTabIndent = true) {
 
   if (languageExtension) extensions.push(languageExtension());
 
-  if (includeTabIndent) {
-    extensions.push(
-      keymap.of([
-        indentWithTab,
-        { key: 'Mod-a', run: selectAll },
-      ]),
-    );
-  } else {
-    extensions.push(
-      keymap.of([
-        { key: 'Mod-a', run: selectAll },
-      ]),
-    );
-  }
+  extensions.push(
+    keymap.of(
+      includeTabIndent
+        ? [indentWithTab, { key: 'Mod-a', run: selectAll }]
+        : [{ key: 'Mod-a', run: selectAll }],
+    ),
+  );
   return extensions;
 }
 
