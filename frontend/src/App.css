@@ -1007,6 +1007,16 @@ a {
    ========================================================= */
 
 @media (max-width: 767px) {
+  .app-shell {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .app-main {
+    overflow: visible;
+  }
+  
   html,
   body {
     min-height: 100%;
@@ -1014,19 +1024,7 @@ a {
   }
 
   .header-right .header-page-link {
-    display: none !important;
-  }
-
-  .footer-links {
-    display: flex;
-  }
-
-  .header-page-link {
-    display: none;
-  }
-
-  .header-page-link {
-    display: none;
+    display: inline-flex;
   }
 
   /*
@@ -1272,20 +1270,30 @@ a {
   .app-footer {
     height: 80px;
 
-    position: absolute;
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
 
-    bottom: 0;
+    flex: 0 0 80px;
+
+    z-index: 3;
+
+    pointer-events: auto;
   }
 
   .footer-links {
     display: flex;
 
-    position: absolute;
+    position: relative;
 
-    left: 0;
-    right: 0;
-    bottom: 20px;
+    left: auto;
+    right: auto;
+    bottom: auto;
 
+    height: 100%;
+
+    align-items: center;
     justify-content: center;
 
     gap: 40px;
