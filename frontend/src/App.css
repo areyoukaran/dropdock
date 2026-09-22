@@ -1006,31 +1006,42 @@ a {
    MOBILE
    ========================================================= */
 
-@media (max-width: 767px) {
-  .app-shell {
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
-  }
-
-  .app-main {
-    overflow: visible;
-  }
-  
+@media(max-width:767px) {
   html,
   body {
     min-height: 100%;
     overflow-x: hidden;
   }
 
-  .header-right .header-page-link {
-    display: inline-flex;
+  .app-header {
+    height: 130px;
+    padding: 24px 32px 0;
+    align-items: flex-start;
   }
 
-  .header-right > a {
-    display: none;
+  .brand {
+    font-size: 26px;
+    gap: 8px;
   }
 
+  .brand-mark {
+    width: 29px;
+    height: 36px;
+  }
+
+  /* Hide About + Privacy from the MOBILE header */
+  .app-header .header-right > a {
+    display: none !important;
+  }
+
+  .header-right {
+    padding: 0;
+  }
+
+  .theme-switch {
+    width: 110px;
+    height: 46px;
+  }
   /*
    * Mobile main content is naturally scrollable.
    */
