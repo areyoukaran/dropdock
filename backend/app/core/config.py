@@ -40,10 +40,10 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
 
-    # In-process expiry sweep — used instead of Celery Beat when no separate
+    # In-process expiry sweep - used instead of Celery Beat when no separate
     # worker/beat process is available (e.g. Render's free tier). Ignored
     # entirely if enable_background_sweep is False, which is the local dev
-    # default since docker-compose already runs a real Celery beat there —
+    # default since docker-compose already runs a real Celery beat there -
     # running both would sweep twice, harmlessly but redundantly.
     enable_background_sweep: bool = False
     background_sweep_interval_seconds: int = 300

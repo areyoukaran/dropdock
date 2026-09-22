@@ -28,7 +28,7 @@ class DropFile(Base):
     content_type: Mapped[str] = mapped_column(String(128), nullable=False)
     size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
-    # Path/key inside the object storage bucket. Never exposed directly —
+    # Path/key inside the object storage bucket. Never exposed directly -
     # downloads always go through a freshly generated signed URL.
     storage_key: Mapped[str] = mapped_column(String(1024), nullable=False)
 

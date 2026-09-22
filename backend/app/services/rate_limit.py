@@ -25,7 +25,7 @@ async def check_rate_limit(key: str, max_requests: int, window_seconds: int) -> 
     Fixed-window counter per key (e.g. 'upload:{ip}' or 'download:{ip}').
     Uses a Redis INCR + EXPIRE pair: the first request in a window sets the
     expiry, subsequent ones just increment. Cheap, atomic enough for this
-    use case, and self-cleaning — no separate sweep needed for rate-limit
+    use case, and self-cleaning - no separate sweep needed for rate-limit
     keys since Redis expires them itself.
     """
     r = get_redis()

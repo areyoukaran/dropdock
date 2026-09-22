@@ -16,7 +16,7 @@ COPY . .
 EXPOSE 8000
 
 # Render (and most PaaS platforms) inject $PORT at runtime and expect the
-# app to bind to it — hardcoding 8000 would fail there. Locally, docker-
+# app to bind to it - hardcoding 8000 would fail there. Locally, docker-
 # compose doesn't set PORT, so this falls back to 8000 for dev as before.
 # --reload is dropped here since it's a dev-only convenience with real
 # overhead; local dev still gets it via the CMD override in docker-compose

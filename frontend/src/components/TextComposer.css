@@ -52,66 +52,435 @@
   right: var(--space-1);
 }
 
+/* ---------- Editor modal ---------- */
+
 .editor-modal-backdrop {
   position: fixed;
-  z-index: 10;
+  z-index: 9999;
   inset: 0;
-  padding: 5vh 5vw;
-  background: color-mix(in srgb, var(--color-ink-deep) 45%, transparent);
+  width: 100%;
+  height: 100dvh;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  padding: clamp(24px, 5vh, 56px) clamp(20px, 5vw, 80px);
+
+  background: rgba(20, 18, 16, 0.42);
+
+  overflow: hidden;
+  isolation: isolate;
 }
 
 .editor-modal {
-  width: min(90vw, 1200px);
-  height: 90vh;
-  padding: var(--space-3);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-raised);
-  box-shadow: var(--shadow-elevated);
+  position: relative;
+  z-index: 1001;
+
+  width: min(1200px, 100%);
+  height: min(90dvh, 820px);
+  max-height: calc(100dvh - 48px);
+
+  box-sizing: border-box;
+
+  min-width: 0;
+  min-height: 0;
+
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+
+  gap: 14px;
+
+  padding: 20px 22px 22px;
+
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+
+  background: var(--color-bg);
+
+  box-shadow:
+    0 24px 70px rgba(20, 18, 16, 0.18),
+    0 4px 16px rgba(20, 18, 16, 0.06);
+
+  overflow: hidden;
+
+  isolation: isolate;
 }
 
-.editor-modal-header,
-.editor-modal-actions {
-  display: flex;
-  align-items: center;
-}
+/* ---------- Editor modal header ---------- */
 
 .editor-modal-header {
+  position: relative;
+  z-index: 2;
+
+  flex: 0 0 auto;
+
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
+
+  gap: 20px;
+
+  min-height: 46px;
+}
+
+.editor-modal-header > div:first-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
 }
 
 .editor-modal-header h2 {
+  margin: 0;
+
   color: var(--color-ink);
-  font-size: 17px;
+
+  font-size: 16px;
+  line-height: 1.2;
   font-weight: 600;
+
+  letter-spacing: -0.025em;
 }
 
 .editor-modal-eyebrow {
+  margin: 0;
+
   color: var(--color-ink-tertiary);
-  font-size: 13px;
+
+  font-size: 11px;
+  line-height: 1.2;
   font-weight: 500;
+
+  letter-spacing: 0.01em;
 }
 
+/* ---------- Editor modal actions ---------- */
+
 .editor-modal-actions {
-  gap: var(--space-1);
+  position: relative;
+  z-index: 3;
+
+  flex: 0 0 auto;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 8px;
+
+  min-width: 0;
 }
 
 .editor-modal-language {
-  align-self: auto;
+  align-self: center;
+
+  min-width: 132px;
+  height: 40px;
+
+  margin: 0;
+
+  padding: 0 34px 0 12px;
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  background: var(--color-surface-raised);
+  color: var(--color-ink-secondary);
+
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  outline: none;
+
+  transition:
+    border-color 0.18s var(--ease-out),
+    color 0.18s var(--ease-out),
+    background-color 0.18s var(--ease-out);
 }
 
+.editor-modal-language:hover {
+  border-color: var(--color-ink-secondary);
+  color: var(--color-ink);
+}
+
+.editor-modal-language:focus-visible {
+  border-color: var(--color-ink-secondary);
+
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+/* ---------- Editor close button ---------- */
+
+.editor-modal-actions .editor-icon-button {
+  position: relative;
+  z-index: 4;
+
+  flex: 0 0 40px;
+
+  width: 40px;
+  height: 40px;
+
+  border: 1px solid transparent;
+  border-radius: 50%;
+
+  background: transparent;
+  color: var(--color-ink-tertiary);
+
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  transition:
+    background-color 0.18s var(--ease-out),
+    border-color 0.18s var(--ease-out),
+    color 0.18s var(--ease-out);
+}
+
+.editor-modal-actions .editor-icon-button:hover {
+  border-color: var(--color-border-subtle);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.editor-modal-actions .editor-icon-button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Full editor surface ---------- */
+
 .code-mirror-surface.editor-modal-editor {
-  height: calc(90vh - 120px);
+  position: relative;
+  z-index: 1;
+
+  flex: 1 1 auto;
+
+  width: 100%;
+  min-width: 0;
   min-height: 0;
+
+  height: auto;
   max-height: none;
-  flex: 1;
+
+  overflow: hidden;
+
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+
+  background: var(--color-surface-raised);
+}
+
+/* CodeMirror itself must fill the available editor area */
+
+.code-mirror-surface.editor-modal-editor .cm-editor {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+
+  background: transparent;
+  color: var(--color-ink);
+}
+
+.code-mirror-surface.editor-modal-editor .cm-scroller {
+  overflow: auto;
+  height: 100%;
+  min-height: 0;
+
+  overflow: auto;
+
+  font-family:
+    "SF Mono",
+    ui-monospace,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace;
+
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.code-mirror-surface.editor-modal-editor .cm-content {
+  min-height: 100%;
+
+  padding: 14px 0;
+
+  caret-color: var(--color-ink);
+}
+
+.code-mirror-surface.editor-modal-editor .cm-line {
+  padding: 0;
+}
+
+.code-mirror-surface.editor-modal-editor .cm-gutters {
+  border: 0;
+  background: transparent;
+}
+
+.code-mirror-surface.editor-modal-editor .cm-focused {
+  outline: none;
+}
+
+.code-mirror-surface.editor-modal-editor .cm-selectionBackground,
+.code-mirror-surface.editor-modal-editor .cm-content ::selection {
+  background: var(--color-focus-ring);
+}
+
+/* ---------- Desktop proportions ---------- */
+
+@media (min-width: 901px) {
+  .editor-modal {
+    width: min(1200px, 100%);
+    height: min(88dvh, 820px);
+  }
+}
+
+/* ---------- Tablet ---------- */
+
+@media (max-width: 900px) {
+  .editor-modal-backdrop {
+    padding: 24px;
+  }
+
+  .editor-modal {
+    width: 100%;
+    height: min(92dvh, 820px);
+    max-height: calc(100dvh - 48px);
+
+    padding: 18px;
+
+    border-radius: var(--radius-lg);
+  }
+
+  .editor-modal-header {
+    gap: 14px;
+  }
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 767px) {
+  .editor-modal-backdrop {
+    align-items: center;
+    box-sizing: border-box;
+    width: 100%;
+    height: min(92dvh, 820px);
+    max-height: calc(100dvh - 48px);
+
+    padding:
+      max(12px, env(safe-area-inset-top))
+      max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
+  }
+
+  .editor-modal {
+    width: 100%;
+    height: min(94dvh, 900px);
+    max-height: calc(100dvh - 24px);
+
+    gap: 12px;
+
+    padding: 14px;
+
+    border-radius: var(--radius-lg);
+  }
+
+  .editor-modal-header {
+    min-height: 42px;
+
+    gap: 12px;
+  }
+
+  .editor-modal-header h2 {
+    font-size: 15px;
+  }
+
+  .editor-modal-eyebrow {
+    font-size: 10px;
+  }
+
+  .editor-modal-actions {
+    gap: 6px;
+  }
+
+  .editor-modal-language {
+    min-width: 112px;
+    height: 38px;
+
+    font-size: 11px;
+  }
+
+  .editor-modal-actions .editor-icon-button {
+    flex-basis: 38px;
+
+    width: 38px;
+    height: 38px;
+  }
+
+  .code-mirror-surface.editor-modal-editor {
+    min-height: 0;
+    height: auto;
+    flex: 1 1 auto;
+  }
+
+  .code-mirror-surface.editor-modal-editor .cm-scroller {
+    font-size: 12px;
+    overflow: auto;
+  }
+
+  .code-mirror-surface.editor-modal-editor .cm-content {
+    padding: 12px 0;
+  }
+}
+
+/* ---------- Small mobile ---------- */
+
+@media (max-width: 420px) {
+  .editor-modal {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .editor-modal-header {
+    min-height: 40px;
+  }
+
+  .editor-modal-header h2 {
+    font-size: 14px;
+  }
+
+  .editor-modal-eyebrow {
+    font-size: 9px;
+  }
+
+  .editor-modal-language {
+    min-width: 96px;
+    height: 36px;
+
+    padding-left: 10px;
+
+    font-size: 10px;
+  }
+
+  .editor-modal-actions .editor-icon-button {
+    flex-basis: 36px;
+
+    width: 36px;
+    height: 36px;
+  }
 }
 
 .text-composer-lang {

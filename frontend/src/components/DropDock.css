@@ -5,7 +5,7 @@
   background, icon size, copy sizing). This file previously redefined the
   same classes with a different visual treatment (radial gradient
   background, circular icon badge, inset shadows) that isn't in the
-  mockups — a silent duplicate-selector conflict, same root cause as the
+  mockups - a silent duplicate-selector conflict, same root cause as the
   earlier :root color-token issue. Only the non-conflicting idle-float
   animation (not present in App.css) stays here.
 */

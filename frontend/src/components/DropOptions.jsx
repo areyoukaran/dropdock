@@ -1,4 +1,5 @@
 import './DropOptions.css';
+import ErrorBanner from './ErrorBanner';
 
 const TIME_OPTIONS = [
   { value: '1h', label: '1 hour' },
@@ -34,7 +35,7 @@ function Switch({ checked, onChange, label }) {
   );
 }
 
-export default function DropOptions({ options, onChange }) {
+export default function DropOptions({ options, onChange, passwordError }) {
   const {
     expiryMode,
     timeExpiry,
@@ -50,21 +51,15 @@ export default function DropOptions({ options, onChange }) {
 
   const updateOptions = (changes) => onChange({ ...options, ...changes });
 
-  const setTimeEnabled = (enabled) => {
-    // expiryMode is a convenience label, not the source of truth (CreatePage
-    // reads timeEnabled/downloadsEnabled directly when submitting) — but it
-    // should still never claim a mode that's actually off, to avoid
-    // confusing/inconsistent internal state.
+ const setTimeEnabled = (enabled) => {
     updateOptions({
       timeEnabled: enabled,
-      expiryMode: enabled ? 'time' : downloadsEnabled ? 'download_count' : null,
     });
   };
 
   const setDownloadsEnabled = (enabled) => {
     updateOptions({
       downloadsEnabled: enabled,
-      expiryMode: enabled ? 'download_count' : timeEnabled ? 'time' : null,
     });
   };
 
@@ -97,7 +92,7 @@ export default function DropOptions({ options, onChange }) {
               type="button"
               className={`pill${timeExpiry === option.value && !isViewOnce ? ' pill-active' : ''}`}
               disabled={isViewOnce}
-              onClick={() => updateOptions({ timeExpiry: option.value, timeEnabled: true, expiryMode: 'time' })}
+              onClick={() => updateOptions({ timeExpiry: option.value, timeEnabled: true })}
             >
               {option.label}
             </button>
@@ -105,31 +100,43 @@ export default function DropOptions({ options, onChange }) {
         </div>
       </section>
 
-      <section className="settings-section setting-row">
-        <span className="setting-icon"><IconDownload /></span>
-        <div className="setting-copy">
-          <div className="setting-title">Limit downloads</div>
-          <div className="setting-description">Set a maximum number of downloads</div>
-        </div>
-        <Switch checked={!isViewOnce && downloadsEnabled} onChange={setDownloadsEnabled} label="Limit downloads" />
-      </section>
+      <div className="download-limit-section">
+        <section className="setting-row">
+          <span className="setting-icon"><IconDownload /></span>
 
-      {downloadsEnabled && !isViewOnce && (
-        <div className="download-limit-input">
-          <input
-            id="max-downloads"
-            type="number"
-            min={1}
-            max={1000}
-            value={maxDownloads}
-            onChange={(event) => updateOptions({ maxDownloads: event.target.value })}
-            placeholder="5"
-            aria-label="Maximum downloads"
+          <div className="setting-copy">
+            <div className="setting-title">Limit downloads</div>
+            <div className="setting-description">
+              Set a maximum number of downloads
+            </div>
+          </div>
+
+          <Switch
+            checked={!isViewOnce && downloadsEnabled}
+            onChange={setDownloadsEnabled}
+            label="Limit downloads"
           />
-        </div>
-      )}
+        </section>
 
-      <section className="settings-section setting-row">
+        {downloadsEnabled && !isViewOnce && (
+          <div className="download-limit-input">
+            <input
+              id="max-downloads"
+              type="number"
+              min={1}
+              max={1000}
+              value={maxDownloads}
+              onChange={(event) =>
+                updateOptions({ maxDownloads: event.target.value })
+              }
+              placeholder="5"
+              aria-label="Maximum downloads"
+            />
+          </div>
+        )}
+      </div>
+
+      <section className="setting-row view-once-section">
         <span className="setting-icon"><IconEye /></span>
         <div className="setting-copy">
           <div className="setting-title">View once</div>
@@ -142,10 +149,15 @@ export default function DropOptions({ options, onChange }) {
         <div className="setting-intro">
           <span className="setting-icon"><IconLock /></span>
           <div className="setting-copy">
-            <div className="setting-title">Password <span className="option-optional">(optional)</span></div>
-            <div className="setting-description">Add a password to restrict access</div>
+            <div className="setting-title">
+              Password <span className="option-optional">(optional)</span>
+            </div>
+            <div className="setting-description">
+              Add a password to restrict access
+            </div>
           </div>
         </div>
+
         <input
           id="drop-password"
           type="password"
@@ -155,7 +167,12 @@ export default function DropOptions({ options, onChange }) {
           placeholder="Enter a password"
           autoComplete="new-password"
           minLength={4}
+          aria-invalid={passwordError ? 'true' : 'false'}
         />
+
+        {passwordError && (
+          <ErrorBanner>{passwordError}</ErrorBanner>
+        )}
       </section>
     </div>
   );

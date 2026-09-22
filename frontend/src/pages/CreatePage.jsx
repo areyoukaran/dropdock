@@ -124,7 +124,7 @@ export default function CreatePage() {
     setProgress(0);
 
     // expiryMode can be null in DropOptions' internal state only when both
-    // the time and download toggles are off — a state the submit button is
+    // the time and download toggles are off - a state the submit button is
     // already disabled for (see hasExpiry above). Resolving a concrete
     // mode here regardless keeps the payload valid even if that guard is
     // ever loosened later, rather than relying solely on the disabled
@@ -189,7 +189,7 @@ export default function CreatePage() {
 
   if (result) {
     return (
-      <div className="card">
+      <div className="card receive-card">
         <ShareResult drop={result} onReset={handleReset} />
       </div>
     );
@@ -258,10 +258,18 @@ export default function CreatePage() {
         <div className="settings-heading">
           <p className="eyebrow">Drop settings</p>
         </div>
-        <DropOptions options={options} onChange={setOptions} />
+        <DropOptions
+          options={options}
+          onChange={setOptions}
+          passwordError={
+            error === 'Password must be at least 4 characters.'
+              ? error
+              : null
+          }
+        />
 
-        {(serviceError || error) && (
-          <ErrorBanner>{error || serviceError}</ErrorBanner>
+        {serviceError && (
+          <ErrorBanner>{serviceError}</ErrorBanner>
         )}
 
         {isSubmitting && mode === 'files' && (

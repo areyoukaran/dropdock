@@ -31,7 +31,7 @@ class ExpiryMode(str, enum.Enum):
 
 class Drop(Base):
     """
-    The core polymorphic entity. A Drop represents ANY shareable content —
+    The core polymorphic entity. A Drop represents ANY shareable content -
     a single file, a batch of files, a text snippet, or a pasted image.
     Expiry and access-control logic is written once here and applies to
     all four content types identically, instead of four separate models

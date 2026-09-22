@@ -80,11 +80,11 @@ async def try_consume_download(db: AsyncSession, drop_id) -> bool:
     people hit a "1-download-only" drop at the same instant, only one may
     succeed. A naive "read count, check < max, then write count+1" has a
     window between the read and the write where two concurrent requests can
-    both pass the check before either writes — both would succeed on a
+    both pass the check before either writes - both would succeed on a
     burn-after-reading link.
 
     The fix is to make the check and the increment a single atomic
-    statement at the database level, so Postgres — not application code —
+    statement at the database level, so Postgres - not application code -
     serializes concurrent attempts:
 
         UPDATE drops

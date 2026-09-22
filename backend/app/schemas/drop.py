@@ -77,7 +77,7 @@ class DownloadUrlOut(BaseModel):
 
 
 class DropMetaOut(BaseModel):
-    """Public-safe metadata shown before unlocking/downloading — no content."""
+    """Public-safe metadata shown before unlocking/downloading - no content."""
 
     slug: str
     drop_type: str

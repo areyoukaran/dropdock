@@ -55,7 +55,7 @@ async def _sweep() -> int:
 @celery_app.task(name="app.workers.expiry.sweep_expired_drops")
 def sweep_expired_drops() -> str:
     """
-    Celery entrypoint — used for local development, where docker-compose
+    Celery entrypoint - used for local development, where docker-compose
     runs a dedicated worker + beat scheduler. Not used in the deployed
     (Render free tier) build; see app.workers.background_loop for that
     environment's equivalent, which calls _sweep() directly from an

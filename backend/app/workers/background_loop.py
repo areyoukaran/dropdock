@@ -13,7 +13,7 @@ async def run_periodic_sweep() -> None:
     deployments (e.g. Render's free tier) where running a separate
     worker + beat process isn't free.
 
-    This does NOT affect correctness of expiry enforcement — is_expired()
+    This does NOT affect correctness of expiry enforcement - is_expired()
     is checked live on every request that touches a drop, so an expired
     drop is never served whether or not this loop has run recently. This
     loop only does the *cleanup* half: deleting expired drops' files from
@@ -22,7 +22,7 @@ async def run_periodic_sweep() -> None:
 
     Runs for as long as the FastAPI process is alive. On a sleeping free
     tier instance, this pauses along with everything else and simply
-    resumes on the next request that wakes the service — acceptable for
+    resumes on the next request that wakes the service - acceptable for
     a low-traffic deployment; not a substitute for a real scheduler under
     sustained load.
     """
@@ -37,5 +37,5 @@ async def run_periodic_sweep() -> None:
             raise
         except Exception:
             # A single failed sweep (e.g. transient DB hiccup) should never
-            # kill the loop — log and try again next interval.
+            # kill the loop - log and try again next interval.
             logger.exception("Background expiry sweep failed; will retry next interval")

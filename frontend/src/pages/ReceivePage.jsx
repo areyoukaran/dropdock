@@ -136,7 +136,7 @@ export default function ReceivePage() {
 
   if (notFound) {
     return (
-      <div className="card">
+      <div className="card receive-card">
         <div className="status-block">
           <h2 className="status-title">Drop not found</h2>
           <p className="status-body">
@@ -149,7 +149,7 @@ export default function ReceivePage() {
 
   if (error && !meta) {
     return (
-      <div className="card">
+      <div className="card receive-card">
         <ErrorBanner>{error}</ErrorBanner>
       </div>
     );
@@ -157,7 +157,7 @@ export default function ReceivePage() {
 
   if (meta.is_expired) {
     return (
-      <div className="card">
+      <div className="card receive-card">
         <div className="status-block">
           <h2 className="status-title">This drop is gone</h2>
           <p className="status-body">
@@ -180,7 +180,7 @@ export default function ReceivePage() {
   const filesToShow = isFilesUnlocked ? unlockedFiles : meta.files;
 
   return (
-    <div className="card">
+    <div className="card receive-card">
       {isTextDrop && (
         <div className="receive-icon" aria-hidden="true">
           <svg width="48" height="48" viewBox="0 0 48 48" fill="none">

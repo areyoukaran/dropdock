@@ -4,20 +4,33 @@ import './ShareResult.css';
 import { copyText } from '../utils/clipboard';
 
 function expiryLabel(drop) {
-  if (drop.expiry_mode === 'time' && drop.expires_at) {
-    const date = new Date(drop.expires_at);
-    return `Expires ${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at ${date.toLocaleTimeString(
-      undefined,
-      { hour: 'numeric', minute: '2-digit' },
-    )}`;
-  }
-  if (drop.expiry_mode === 'download_count') {
-    return `Expires after ${drop.max_downloads} download${drop.max_downloads === 1 ? '' : 's'}`;
-  }
   if (drop.expiry_mode === 'view_once') {
     return "Disappears after it's viewed once";
   }
-  return null;
+
+  const labels = [];
+
+  if (drop.expires_at) {
+    const date = new Date(drop.expires_at);
+
+    labels.push(
+      `Expires ${date.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+      })} at ${date.toLocaleTimeString(undefined, {
+        hour: 'numeric',
+        minute: '2-digit',
+      })}`,
+    );
+  }
+
+  if (drop.max_downloads != null) {
+    labels.push(
+      `${drop.max_downloads} download${drop.max_downloads === 1 ? '' : 's'} maximum`,
+    );
+  }
+
+  return labels.length ? labels.join(' · ') : null;
 }
 
 export default function ShareResult({ drop, onReset }) {
@@ -74,7 +87,7 @@ export default function ShareResult({ drop, onReset }) {
       </div>
 
       {drop.has_password && (
-        <p className="share-note">Password protected — share it separately.</p>
+        <p className="share-note">Password protected - share it separately.</p>
       )}
 
       <button type="button" className="share-reset" onClick={onReset}>

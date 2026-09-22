@@ -8,7 +8,7 @@ from app.core.config import settings
 class StorageService:
     """
     Thin wrapper around boto3's S3 client, pointed at MinIO locally and at
-    real S3/R2 in production — same code, different endpoint. Files are
+    real S3/R2 in production - same code, different endpoint. Files are
     never made public; every download goes through a short-lived signed URL
     generated on demand, so a leaked/guessed storage key alone is useless.
     """
@@ -26,7 +26,7 @@ class StorageService:
             config=BotoConfig(signature_version="s3v4"),
         )
         # Public client: identical credentials, but points at an endpoint the
-        # browser can actually resolve. Used ONLY to generate signed URLs —
+        # browser can actually resolve. Used ONLY to generate signed URLs -
         # the browser fetches the file directly from this address, so it
         # can't be the internal Docker hostname ("minio"), which means
         # nothing outside the Docker network.
@@ -51,7 +51,7 @@ class StorageService:
         """
         Streams the upload directly to object storage. boto3's upload_fileobj
         reads the source in chunks internally rather than loading the whole
-        file into memory — this is what makes large files safe to accept.
+        file into memory - this is what makes large files safe to accept.
         """
         self._client.upload_fileobj(
             file_obj,
@@ -62,7 +62,7 @@ class StorageService:
 
     def generate_download_url(self, key: str, filename: str, expires_in: int = 300) -> str:
         """
-        Signed, time-limited download link. expires_in defaults to 5 minutes —
+        Signed, time-limited download link. expires_in defaults to 5 minutes -
         long enough for a browser to start the download, short enough that
         the link is useless if it leaks or gets cached somewhere.
 
@@ -83,7 +83,7 @@ class StorageService:
         try:
             self._client.delete_object(Bucket=self.bucket, Key=key)
         except ClientError:
-            pass  # already gone — fine, expiry sweep should be idempotent
+            pass  # already gone - fine, expiry sweep should be idempotent
 
     def delete_objects(self, keys: list[str]) -> None:
         if not keys:

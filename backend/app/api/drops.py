@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
@@ -131,27 +132,92 @@ async def create_file_drop(
     if total_size > settings.max_drop_size_bytes:
         raise HTTPException(413, detail=f"Total drop size exceeds the {settings.max_drop_size_mb}MB limit")
 
-    files_meta = []
-    for f, size in zip(files, file_sizes):
-        contents_key = f"drops/{slug}/{uuid.uuid4()}"
-        # Stream only after all size limits have passed preflight.
-        storage_service.upload_stream(contents_key, f.file, f.content_type or "application/octet-stream")
-        files_meta.append(
-            {
-                "original_filename": f.filename,
-                "content_type": f.content_type or "application/octet-stream",
-                "size_bytes": size,
-                "storage_key": contents_key,
-            }
+    # Validate expiry settings BEFORE touching object storage.
+    try:
+        time_expiry_enum = TimeExpiryOption(time_expiry) if time_expiry else None
+    except ValueError:
+        raise HTTPException(
+            400,
+            detail="Invalid time_expiry. Use 1h, 1d, or 7d.",
         )
 
-    time_expiry_enum = TimeExpiryOption(time_expiry) if time_expiry else None
     if expiry_mode == ExpiryModeSchema.TIME and time_expiry_enum is None:
-        raise HTTPException(400, detail="time_expiry is required when expiry_mode is 'time'")
-    if expiry_mode == ExpiryModeSchema.DOWNLOAD_COUNT and not max_downloads:
-        raise HTTPException(400, detail="max_downloads is required when expiry_mode is 'download_count'")
+        raise HTTPException(
+            400,
+            detail="time_expiry is required when expiry_mode is 'time'",
+        )
+
+    if expiry_mode == ExpiryModeSchema.DOWNLOAD_COUNT:
+        if max_downloads is None:
+            raise HTTPException(
+                400,
+                detail="max_downloads is required when expiry_mode is 'download_count'",
+            )
+
+    if max_downloads is not None and not 1 <= max_downloads <= 1000:
+        raise HTTPException(
+            400,
+            detail="max_downloads must be between 1 and 1000",
+        )
 
     expires_at = drop_service.resolve_expires_at(time_expiry_enum)
+
+    password_hash = hash_password(password) if password else None
+    drop_type = DropType.FILE if len(files) == 1 else DropType.BATCH
+
+    files_meta = []
+    uploaded_keys = []
+
+    try:
+        for f, size in zip(files, file_sizes):
+            contents_key = f"drops/{slug}/{uuid.uuid4()}"
+
+            # boto3 is synchronous, so don't block FastAPI's event loop.
+            await asyncio.to_thread(
+                storage_service.upload_stream,
+                contents_key,
+                f.file,
+                f.content_type or "application/octet-stream",
+            )
+
+            uploaded_keys.append(contents_key)
+
+            files_meta.append(
+                {
+                    "original_filename": f.filename or "unnamed",
+                    "content_type": f.content_type or "application/octet-stream",
+                    "size_bytes": size,
+                    "storage_key": contents_key,
+                }
+            )
+
+        async with AsyncSessionLocal() as db:
+            drop = await drop_service.create_file_drop(
+                db,
+                slug=slug,
+                drop_type=drop_type,
+                expiry_mode=ExpiryMode(expiry_mode.value),
+                expires_at=expires_at,
+                max_downloads=max_downloads,
+                password_hash=password_hash,
+                files_meta=files_meta,
+            )
+            drop = await drop_service.get_drop_with_files(db, drop.slug)
+
+    except Exception:
+        # DB/storage failure must not leave orphaned objects behind.
+        if uploaded_keys:
+            try:
+                await asyncio.to_thread(
+                    storage_service.delete_objects,
+                    uploaded_keys,
+                )
+            except Exception:
+                pass
+
+        raise
+
+    return _to_drop_out(drop, request)
     password_hash = hash_password(password) if password else None
     drop_type = DropType.FILE if len(files) == 1 else DropType.BATCH
 
@@ -175,7 +241,7 @@ async def create_file_drop(
 async def get_drop_meta(slug: str, db: AsyncSession = Depends(get_db)):
     """
     Public-safe peek: does this drop exist, is it expired, does it need a
-    password? No content returned here — lets the frontend render the
+    password? No content returned here - lets the frontend render the
     right unlock/expired UI before the user commits to anything.
     """
     try:
@@ -189,7 +255,7 @@ async def get_drop_meta(slug: str, db: AsyncSession = Depends(get_db)):
         requires_password=drop.password_hash is not None,
         is_expired=drop.is_expired(),
         # Filenames and sizes are real content metadata, not safe to expose
-        # ahead of a password check — a password-protected drop's file list
+        # ahead of a password check - a password-protected drop's file list
         # must stay hidden until the password has been verified server-side.
         files=(
             [DropFileOut.from_model(f) for f in drop.files]
@@ -243,7 +309,7 @@ async def unlock_file_drop(
 ):
     """
     Password-gated peek at a file drop's contents. The /meta endpoint never
-    includes filenames/sizes for a password-protected drop — this endpoint
+    includes filenames/sizes for a password-protected drop - this endpoint
     is the only way to see them, and it requires the password up front,
     same as the text-drop unlock path. It does not consume a download
     (view-once/download-count aren't touched here); actual consumption

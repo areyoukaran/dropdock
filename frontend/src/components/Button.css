@@ -3,7 +3,7 @@
   align-items, cursor, transition) is defined once in App.css, matching
   the design mockups exactly (height, radius, background, font-size for
   the primary "Create drop" button). Defining it again here previously
-  caused a silent conflict — two rules of equal specificity targeting the
+  caused a silent conflict - two rules of equal specificity targeting the
   same class, with whichever loaded later in the bundle winning
   unpredictably. Only variant/size modifier classes (not applied by
   App.css) stay in this file.

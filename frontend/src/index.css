@@ -10,7 +10,7 @@
 
 /*
   Color tokens (--color-*) are defined once, in App.css, to avoid two
-  competing :root blocks fighting over the same custom properties — that
+  competing :root blocks fighting over the same custom properties - that
   was the actual cause of the palette mismatch against the design mockups
   (index.css's blue accent silently overriding App.css's warm accent,
   or vice versa, depending on Vite's CSS chunk order). Non-color tokens
@@ -58,7 +58,7 @@ body {
 
 /*
   body's background, color, font, and overflow behavior are all owned by
-  App.css's body rule (which correctly uses overflow-x: hidden only — the
+  App.css's body rule (which correctly uses overflow-x: hidden only - the
   overflow: hidden shorthand previously here also hid overflow-y, which
   was the actual cause of content being clipped/cut off on mobile instead
   of scrolling). Only non-conflicting, purely decorative rules stay here.
@@ -76,7 +76,6 @@ body::before {
 
 #root {
   position: relative;
-  z-index: 1;
   min-height: 100vh;
 }
 

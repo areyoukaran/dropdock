@@ -20,7 +20,7 @@ celery_app.conf.update(
 
 # Sweep for expired drops every 5 minutes. This is the "background expiry
 # job" from the spec: drops are deleted by a scheduled worker walking the
-# table, not at request time — a request that happens to land on an
+# table, not at request time - a request that happens to land on an
 # already-expired drop should just get a 410, not trigger cleanup work
 # inline on someone else's request path.
 celery_app.conf.beat_schedule = {
