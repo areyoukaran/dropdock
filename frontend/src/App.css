@@ -1027,6 +1027,10 @@ a {
     display: inline-flex;
   }
 
+  .header-right > a {
+    display: none;
+  }
+
   /*
    * Mobile main content is naturally scrollable.
    */
