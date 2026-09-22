@@ -848,7 +848,7 @@ a {
    ========================================================= */
 
 .app-footer {
-  position: fixed;
+  position: relative;
 
   left: 0;
   right: 0;
@@ -1076,20 +1076,6 @@ a {
   .brand-mark {
     width: 29px;
     height: 36px;
-  }
-
-  /*
-   * Keep About and Privacy visible on mobile.
-   */
-  .header-right {
-    gap: 18px;
-    padding: 0;
-
-    font-size: 14px;
-  }
-
-  .header-right a {
-    display: inline-flex;
   }
 
   .error-banner,
