@@ -875,8 +875,38 @@ a {
 
 .footer-links {
   display: none;
+
+  position: absolute;
+
+  left: 0;
+  right: 0;
+  bottom: 20px;
+
+  justify-content: center;
+  align-items: center;
+
+  gap: 40px;
+
+  pointer-events: auto;
 }
 
+.footer-links a {
+  color: var(--color-ink-tertiary);
+
+  font-size: 12px;
+  font-weight: 500;
+
+  text-decoration: none;
+
+  pointer-events: auto;
+
+  transition:
+    color 0.18s var(--ease-out);
+}
+
+.footer-links a:hover {
+  color: var(--color-ink);
+}
 
 /* =========================================================
    TABLET
@@ -981,6 +1011,22 @@ a {
   body {
     min-height: 100%;
     overflow-x: hidden;
+  }
+
+  .header-right .header-page-link {
+    display: none !important;
+  }
+
+  .footer-links {
+    display: flex;
+  }
+
+  .header-page-link {
+    display: none;
+  }
+
+  .header-page-link {
+    display: none;
   }
 
   /*

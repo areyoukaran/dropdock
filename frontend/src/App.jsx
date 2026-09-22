@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect,useLayoutEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation} from 'react-router-dom';
 import CreatePage from './pages/CreatePage';
-import './App.css';
 import AboutPage from './pages/AboutPage';
 import PrivacyPage from './pages/PrivacyPage';
+import './App.css';
 
 const ReceivePage = lazy(() => import('./pages/ReceivePage'));
 
@@ -121,9 +121,13 @@ function Header({ theme, onToggleTheme }) {
       </Link>
 
       <div className="header-right">
-        <Link to="/about">About</Link>
+        <Link className="header-page-link" to="/about">
+          About
+        </Link>
 
-        <Link to="/privacy">Privacy</Link>
+        <Link className="header-page-link" to="/privacy">
+          Privacy
+        </Link>
 
         <ThemeToggle
           theme={theme}
@@ -136,14 +140,8 @@ function Header({ theme, onToggleTheme }) {
 
 function Footer() {
   return (
-    <footer
-      id="about"
-      className="app-footer"
-    >
-      <div
-        className="footer-wave"
-        aria-hidden="true"
-      >
+    <footer className="app-footer">
+      <div className="footer-wave" aria-hidden="true">
         <svg
           viewBox="0 0 1536 170"
           preserveAspectRatio="none"
@@ -166,14 +164,9 @@ function Footer() {
       </div>
 
       <div className="footer-links">
-        <a href="#about">About</a>
+        <Link to="/about">About</Link>
 
-        <a
-          id="privacy"
-          href="#privacy"
-        >
-          Privacy
-        </a>
+        <Link to="/privacy">Privacy</Link>
       </div>
     </footer>
   );
