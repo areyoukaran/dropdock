@@ -6,7 +6,7 @@ DropDock is a full-stack ephemeral sharing service: drop a file, a batch of file
 
 ## Live demo
 
-**dropdockk.vercel.app**
+**https://dropdockk.vercel.app**
 
 ## Stack
 
