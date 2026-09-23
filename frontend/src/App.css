@@ -847,19 +847,16 @@ a {
    ========================================================= */
 
 .app-footer {
-  position: relative;
+  position: fixed;
 
-  left: auto;
-  right: auto;
-  bottom: auto;
+  left: 0;
+  right: 0;
+  bottom: 0;
 
   width: 100%;
   height: 80px;
 
-  flex-shrink: 0;
-
   z-index: 1;
-
   pointer-events: none;
 }
 
@@ -870,44 +867,12 @@ a {
 
 .footer-wave svg {
   display: block;
-
   width: 100%;
   height: 100%;
 }
 
 .footer-links {
-  display: flex;
-
-  position: absolute;
-
-  left: 0;
-  right: 0;
-  bottom: 20px;
-
-  justify-content: center;
-  align-items: center;
-
-  gap: 40px;
-
-  pointer-events: auto;
-}
-
-.footer-links a {
-  color: var(--color-ink-tertiary);
-
-  font-size: 12px;
-  font-weight: 500;
-
-  text-decoration: none;
-
-  pointer-events: auto;
-
-  transition:
-    color 0.18s var(--ease-out);
-}
-
-.footer-links a:hover {
-  color: var(--color-ink);
+  display: none;
 }
 
 /* =========================================================
@@ -1008,30 +973,39 @@ a {
    MOBILE
    ========================================================= */
 
-@media(max-width:767px) {
+@media (max-width: 767px) {
   html,
   body {
+    width: 100%;
     min-height: 100%;
     overflow-x: hidden;
   }
 
+  /* The create screen is designed as one viewport on mobile. */
+  .app-shell:has(.composer-shell) {
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
   .app-header {
-    height: 130px;
-    padding: 24px 32px 0;
+    height: 82px;
+    min-height: 82px;
+    flex: 0 0 82px;
+    padding: 17px 20px 0;
     align-items: flex-start;
   }
 
   .brand {
-    font-size: 26px;
-    gap: 8px;
+    font-size: 24px;
+    gap: 7px;
   }
 
   .brand-mark {
-    width: 29px;
-    height: 36px;
+    width: 27px;
+    height: 33px;
   }
 
-  /* Hide About + Privacy from the MOBILE header */
   .app-header .header-right > a {
     display: none !important;
   }
@@ -1041,333 +1015,417 @@ a {
   }
 
   .theme-switch {
-    width: 110px;
-    height: 46px;
-  }
-  /*
-   * Mobile main content is naturally scrollable.
-   */
-  .app-main {
-    padding:
-      0
-      28px
-      48px;
-
-    display: block;
-
-    flex: none;
-
-    min-height: 0;
-
-    overflow-y: visible;
-  }
-
-  .app-header {
-    height: 130px;
-
-    padding:
-      24px
-      32px
-      0;
-
-    align-items: flex-start;
-  }
-
-  .brand {
-    font-size: 26px;
-    gap: 8px;
-  }
-
-  .brand-mark {
-    width: 29px;
-    height: 36px;
-  }
-
-  .error-banner,
-  .form-error {
-    width: calc(100% - 42px);
-    margin-left: 42px;
-  }
-
-
-  /* ---------- Theme switch ---------- */
-
-  .theme-switch {
-    width: 110px;
-    height: 46px;
-
-    flex-basis: 110px;
-
+    width: 96px;
+    height: 42px;
+    flex-basis: 96px;
     padding: 4px;
   }
 
   .theme-option {
-    width: 38px;
-    height: 38px;
-
-    flex-basis: 38px;
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
   }
 
   .theme-knob {
     top: 4px;
     left: 4px;
-
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
   }
 
   .theme-switch.is-dark .theme-knob {
-    transform: translateX(64px);
+    transform: translateX(54px);
   }
 
+  .app-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    display: block;
+    padding: 0 20px 0;
+    overflow: hidden;
+  }
 
-  /* ---------- Composer ---------- */
+  .app-shell:has(.composer-shell) .app-main {
+    overflow: hidden;
+  }
 
-  .card {
+  .card,
+  .composer-shell,
+  .composer-panel {
     width: 100%;
+    max-width: 100%;
   }
 
   .composer-shell {
     display: flex;
     flex-direction: column;
-
     align-items: stretch;
-
     gap: 0;
-
-    width: 100%;
-  }
-
-  .composer-panel {
-    width: 100%;
-    margin: 0;
   }
 
   .left-panel {
-    padding: 12px 0 0;
+    padding: 0;
   }
 
+  /* Hero: prominent, but not oversized. */
   .panel-heading h1 {
-    font-size: 40px;
-
-    line-height: 1.04;
-
-    letter-spacing: -0.06em;
-
+    font-size: 31px;
+    line-height: 1.02;
+    letter-spacing: -0.065em;
     white-space: nowrap;
   }
 
   .panel-description {
-    font-size: 20px;
-
-    line-height: 1.2;
-
-    max-width: 650px;
-
-    margin-top: 10px;
+    margin: 7px auto 0;
+    max-width: 100%;
+    font-size: 15px;
+    line-height: 1.22;
+    letter-spacing: -0.035em;
+    text-align: center;
+    white-space: normal;
   }
 
   .mode-tabs {
-    width: 340px;
-    max-width: 100%;
-
-    height: 50px;
-
-    margin: 20px auto 18px;
+    width: 100%;
+    max-width: 310px;
+    height: 43px;
+    margin: 10px auto 10px;
   }
 
   .mode-tab {
-    height: 50px;
-
-    font-size: 19px;
-  }
-
-  .dropzone {
-    width: 100%;
-    height: 220px;
-
-    border-radius: 19px;
-  }
-
-  .dropzone-icon {
-    width: 56px;
-    height: 56px;
-
-    margin-bottom: 8px;
-  }
-
-  .dropzone-icon svg {
-    width: 56px;
-    height: 56px;
-  }
-
-  .dropzone-title {
-    font-size: 22px;
-  }
-
-  .dropzone-subtitle {
+    height: 43px;
     font-size: 17px;
   }
 
-  .dropzone-hint {
-    font-size: 15px;
-
-    margin-top: 6px;
+  /* Upload zone stays visually substantial. */
+  .dropzone {
+    width: 100%;
+    height: 177px;
+    border-radius: 18px;
+    padding: 14px;
   }
 
+  .dropzone-icon,
+  .dropzone-icon svg {
+    width: 48px;
+    height: 48px;
+  }
 
-  /* ---------- Settings ---------- */
+  .dropzone-icon {
+    margin-bottom: 5px;
+  }
 
+  .dropzone-title {
+    margin-bottom: 4px;
+    font-size: 20px;
+  }
+
+  .dropzone-subtitle {
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .dropzone-hint {
+    margin-top: 5px;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  /* Settings are part of the page, not a separate card. */
   .right-panel {
     width: 100%;
-
-    margin: 20px auto 0;
-
-    border:
-      1px solid
-      var(--color-border);
-
-    border-radius: 19px;
-
-    padding: 16px 20px 14px;
-
-    background: var(--color-surface-raised);
-
-    box-shadow:
-      0 4px 16px
-      rgba(20, 24, 30, 0.03);
+    margin: 13px 0 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
   .settings-heading {
-    padding: 0 0 13px;
-
-    border-bottom:
-      1px solid
-      var(--color-border-subtle);
+    padding: 0 0 7px;
   }
 
   .settings-heading .eyebrow {
-    font-size: 14px;
+    font-size: 12px;
     letter-spacing: 0.16em;
   }
 
+  /* Balanced DropOptions sizing — deliberately not tiny. */
+  .drop-options .settings-section {
+    margin-bottom: 4px;
+  }
 
-  /* ---------- Buttons ---------- */
+  .drop-options .setting-intro {
+    gap: 12px;
+  }
+
+  .drop-options .setting-icon {
+    width: 27px;
+    height: 27px;
+    flex: 0 0 27px;
+  }
+
+  .drop-options .setting-icon svg {
+    width: 27px;
+    height: 27px;
+  }
+
+  .drop-options .setting-title {
+    font-size: 17px;
+    line-height: 1.08;
+    white-space: nowrap;
+  }
+
+  .drop-options .setting-description {
+    margin-top: 2px;
+    font-size: 12.5px;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .drop-options .expiration-section {
+    padding-bottom: 7px;
+  }
+
+  .drop-options .pill-row {
+    gap: 7px;
+    margin-top: 8px;
+  }
+
+  .drop-options .pill {
+    height: 40px;
+    border-radius: 13px;
+    font-size: 14px;
+  }
+
+  .drop-options .setting-row {
+    min-height: 55px;
+    padding: 6px 0;
+    gap: 12px;
+  }
+
+  .drop-options .settings-switch {
+    width: 50px;
+    height: 31px;
+    flex: 0 0 50px;
+  }
+
+  .drop-options .settings-switch span {
+    width: 23px;
+    height: 23px;
+    top: 4px;
+    left: 4px;
+  }
+
+  .drop-options .settings-switch.is-on span {
+    transform: translateX(19px);
+  }
+
+  .drop-options .download-limit-input {
+    padding: 0 0 6px 39px;
+  }
+
+  .drop-options .download-limit-input input {
+    height: 40px;
+    border-radius: 10px;
+    font-size: 13px;
+    padding: 0 11px;
+  }
+
+  .drop-options .password-setting {
+    padding-top: 7px;
+  }
+
+  .drop-options .password-input {
+    width: calc(100% - 39px);
+    height: 42px;
+    margin: 7px 0 0 39px;
+    border-radius: 10px;
+    font-size: 13px;
+    padding: 0 11px;
+  }
 
   .submit-row {
-    margin-top: 16px;
+    margin-top: 8px;
   }
 
   .btn {
-    height: 54px;
-
-    border-radius: 13px;
-
-    font-size: 18px;
+    width: 100%;
+    height: 47px;
+    border-radius: 12px;
+    font-size: 16px;
   }
 
   .create-arrow {
-    font-size: 25px;
+    font-size: 21px;
   }
 
+  .privacy-note {
+    margin-top: 6px;
+    font-size: 11px;
+    line-height: 1.15;
+  }
 
-  /* ---------- Footer ---------- */
+  .privacy-note span {
+    font-size: 12px;
+    margin-right: 5px;
+  }
 
+  .privacy-lock,
+  .privacy-lock svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  /* Footer stays in normal mobile flow, but is compact. */
   .app-footer {
-    height: 80px;
-
     position: relative;
     left: auto;
     right: auto;
     bottom: auto;
-
-    flex: 0 0 80px;
-
+    width: 100%;
+    height: 51px;
+    flex: 0 0 51px;
+    flex-shrink: 0;
     z-index: 3;
-
     pointer-events: auto;
   }
 
   .footer-links {
     display: flex;
-
-    position: relative;
-
-    left: auto;
-    right: auto;
-    bottom: auto;
-
-    height: 100%;
-
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 7px;
+    height: auto;
     align-items: center;
     justify-content: center;
-
-    gap: 40px;
-
-    color: var(--color-ink-tertiary);
-
-    font-size: 16px;
-
+    gap: 32px;
+    font-size: 13px;
     pointer-events: auto;
   }
 
   .footer-links a {
     pointer-events: auto;
   }
+
+  .error-banner,
+  .form-error {
+    width: calc(100% - 39px);
+    margin-left: 39px;
+  }
 }
 
 
 /* =========================================================
-   SMALL MOBILE
+   SHORT MOBILE HEIGHTS
    ========================================================= */
 
-@media (max-width: 620px) {
+@media (max-width: 767px) and (max-height: 820px) {
   .app-header {
-    padding-left: 24px;
-    padding-right: 24px;
-  }
-
-  .header-right {
-    gap: 14px;
-  }
-
-  .app-main {
-    padding-left: 22px;
-    padding-right: 22px;
+    height: 76px;
+    min-height: 76px;
+    flex-basis: 76px;
+    padding-top: 14px;
   }
 
   .panel-heading h1 {
-    font-size: 34px;
+    font-size: 29px;
   }
 
   .panel-description {
-    font-size: 18px;
+    margin-top: 5px;
+    font-size: 14.5px;
   }
 
   .mode-tabs {
-    width: 100%;
-
-    margin-top: 18px;
+    height: 41px;
+    margin-top: 8px;
+    margin-bottom: 9px;
   }
 
-  .dropzone {
-    height: 200px;
-  }
-
-  .dropzone-title {
-    font-size: 20px;
-  }
-
-  .dropzone-subtitle {
+  .mode-tab {
+    height: 41px;
     font-size: 16px;
   }
 
+  .dropzone {
+    height: 165px;
+  }
+
+  .dropzone-icon,
+  .dropzone-icon svg {
+    width: 45px;
+    height: 45px;
+  }
+
+  .dropzone-title {
+    font-size: 19px;
+  }
+
+  .dropzone-subtitle {
+    font-size: 13.5px;
+  }
+
   .dropzone-hint {
-    font-size: 14px;
+    font-size: 11.5px;
+  }
+
+  .right-panel {
+    margin-top: 11px;
+  }
+
+  .drop-options .setting-title {
+    font-size: 16px;
+  }
+
+  .drop-options .setting-description {
+    font-size: 12px;
+  }
+
+  .drop-options .setting-icon,
+  .drop-options .setting-icon svg {
+    width: 25px;
+    height: 25px;
+  }
+
+  .drop-options .setting-icon {
+    flex-basis: 25px;
+  }
+
+  .drop-options .setting-row {
+    min-height: 51px;
+  }
+
+  .drop-options .pill {
+    height: 38px;
+    font-size: 13.5px;
+  }
+
+  .drop-options .password-input {
+    height: 39px;
+  }
+
+  .btn {
+    height: 44px;
+    font-size: 15px;
+  }
+
+  .privacy-note {
+    font-size: 10px;
   }
 
   .app-footer {
-    height: 72px;
+    height: 45px;
+    flex-basis: 45px;
+  }
+
+  .footer-links {
+    bottom: 5px;
+    font-size: 12px;
   }
 }
 
@@ -1378,12 +1436,8 @@ a {
 
 @media (max-width: 430px) {
   .app-header {
-    height: 112px;
-
-    padding:
-      20px
-      18px
-      0;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
   .brand {
@@ -1391,113 +1445,139 @@ a {
   }
 
   .brand-mark {
-    width: 26px;
-    height: 32px;
-  }
-
-  .header-right {
-    gap: 8px;
-    font-size: 12px;
+    width: 25px;
+    height: 31px;
   }
 
   .theme-switch {
-    width: 96px;
-    height: 42px;
-
-    flex-basis: 96px;
+    width: 92px;
+    height: 40px;
+    flex-basis: 92px;
   }
 
   .theme-option {
-    width: 34px;
-    height: 34px;
-
-    flex-basis: 34px;
-  }
-
-  .theme-option svg,
-  .theme-knob svg {
-    width: 18px;
-    height: 18px;
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
   }
 
   .theme-knob {
-    top: 4px;
-    left: 4px;
-
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
   }
 
   .theme-switch.is-dark .theme-knob {
-    transform: translateX(54px);
+    transform: translateX(52px);
   }
 
-  .left-panel {
-    padding-top: 6px;
+  .app-main {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
   .panel-heading h1 {
-    font-size: 29px;
+    font-size: 28px;
   }
 
   .panel-description {
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .mode-tabs {
-    height: 46px;
-
-    margin:
-      16px auto
-      14px;
-  }
-
-  .mode-tab {
-    height: 46px;
-
-    font-size: 17px;
+    max-width: 280px;
   }
 
   .dropzone {
-    height: 190px;
+    height: 160px;
   }
 
   .dropzone-icon,
   .dropzone-icon svg {
-    width: 48px;
-    height: 48px;
+    width: 43px;
+    height: 43px;
   }
 
   .dropzone-title {
-    font-size: 19px;
+    font-size: 18px;
   }
 
   .dropzone-subtitle {
-    font-size: 15px;
+    font-size: 13px;
   }
 
   .dropzone-hint {
+    font-size: 11px;
+  }
+
+  .drop-options .setting-title {
+    font-size: 15.5px;
+  }
+
+  .drop-options .setting-description {
+    font-size: 11.5px;
+  }
+
+  .drop-options .setting-icon,
+  .drop-options .setting-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .drop-options .setting-icon {
+    flex-basis: 24px;
+  }
+
+  .drop-options .setting-row {
+    min-height: 49px;
+  }
+
+  .drop-options .settings-switch {
+    width: 48px;
+    height: 30px;
+    flex-basis: 48px;
+  }
+
+  .drop-options .settings-switch span {
+    width: 22px;
+    height: 22px;
+  }
+
+  .drop-options .settings-switch.is-on span {
+    transform: translateX(18px);
+  }
+
+  .drop-options .pill {
+    height: 37px;
     font-size: 13px;
   }
 
-  .right-panel {
-    margin-top: 16px;
-  }
-
-  .settings-heading .eyebrow {
-    font-size: 13px;
+  .drop-options .password-input {
+    height: 38px;
+    font-size: 12.5px;
   }
 
   .btn {
-    height: 48px;
+    height: 43px;
+    font-size: 15px;
+  }
 
-    font-size: 16px;
+  .privacy-note {
+    font-size: 9.5px;
+  }
+
+  .privacy-note span {
+    font-size: 10.5px;
+  }
+
+  .app-footer {
+    height: 43px;
+    flex-basis: 43px;
   }
 
   .footer-links {
-    font-size: 14px;
-
-    bottom: 16px;
+    bottom: 4px;
+    font-size: 11.5px;
+    gap: 27px;
   }
 }
 
@@ -1551,25 +1631,28 @@ a {
 
 @media (max-width: 767px) {
   .privacy-note {
-    margin-top: 18px;
-
-    font-size: 16px;
+    margin-top: 6px;
+    font-size: 10.5px;
   }
 
   .privacy-note span {
-    font-size: 16px;
+    font-size: 11.5px;
   }
 
   .privacy-lock,
   .privacy-lock svg {
-    width: 17px;
-    height: 17px;
+    width: 12px;
+    height: 12px;
   }
 }
 
 @media (max-width: 430px) {
   .privacy-note {
-    font-size: 14px;
+    font-size: 9px;
+  }
+
+  .privacy-note span {
+    font-size: 10px;
   }
 }
 
