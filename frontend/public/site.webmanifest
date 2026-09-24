@@ -1,0 +1,17 @@
+{
+  "name": "DropDock",
+  "short_name": "DropDock",
+  "description": "Share files, text, code, and images with auto-expiring links.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f3ee",
+  "theme_color": "#f6f3ee",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

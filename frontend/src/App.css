@@ -649,6 +649,8 @@ a {
 .dropzone-active {
   border-color: var(--color-accent);
 
+  background: var(--color-surface-raised);
+
   background:
     color-mix(
       in srgb,
@@ -981,18 +983,32 @@ a {
     overflow-x: hidden;
   }
 
-  /* The create screen is designed as one viewport on mobile. */
+  /*
+   * Mobile create page:
+   * the shell is the scroll container, while the header remains
+   * visible with position: sticky. The content is never clipped.
+   */
   .app-shell:has(.composer-shell) {
-    height: 100dvh;
     min-height: 100dvh;
-    overflow: hidden;
+    height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
   }
 
   .app-header {
-    height: 82px;
-    min-height: 82px;
-    flex: 0 0 82px;
-    padding: 17px 20px 0;
+    position: sticky;
+     top: 0;
+    z-index: 20;
+    background: var(--color-bg);
+
+    height: calc(82px + env(safe-area-inset-top));
+    min-height: calc(82px + env(safe-area-inset-top));
+    flex: 0 0 calc(82px + env(safe-area-inset-top));
+    padding: max(17px, env(safe-area-inset-top)) 20px 0;
     align-items: flex-start;
   }
 
@@ -1038,17 +1054,13 @@ a {
     transform: translateX(54px);
   }
 
-  .app-main {
-    flex: 1 1 auto;
-    min-height: 0;
-    height: auto;
-    display: block;
-    padding: 0 20px 0;
-    overflow: hidden;
-  }
-
+  .app-main,
   .app-shell:has(.composer-shell) .app-main {
-    overflow: hidden;
+    flex: 0 0 auto;
+    min-height: auto;
+    height: auto;
+    padding: 0 20px calc(40px + env(safe-area-inset-bottom));
+    overflow: visible;
   }
 
   .card,
@@ -1075,6 +1087,7 @@ a {
     line-height: 1.02;
     letter-spacing: -0.065em;
     white-space: nowrap;
+    max-width: 100%;
   }
 
   .panel-description {
@@ -1287,8 +1300,8 @@ a {
     right: auto;
     bottom: auto;
     width: 100%;
-    height: 51px;
-    flex: 0 0 51px;
+    height: calc(51px + env(safe-area-inset-bottom));
+    flex: 0 0 calc(51px + env(safe-area-inset-bottom));
     flex-shrink: 0;
     z-index: 3;
     pointer-events: auto;
@@ -1299,7 +1312,7 @@ a {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 7px;
+    bottom: calc(7px + env(safe-area-inset-bottom));
     height: auto;
     align-items: center;
     justify-content: center;
@@ -1321,116 +1334,6 @@ a {
 
 
 /* =========================================================
-   SHORT MOBILE HEIGHTS
-   ========================================================= */
-
-@media (max-width: 767px) and (max-height: 820px) {
-  .app-header {
-    height: 76px;
-    min-height: 76px;
-    flex-basis: 76px;
-    padding-top: 14px;
-  }
-
-  .panel-heading h1 {
-    font-size: 29px;
-  }
-
-  .panel-description {
-    margin-top: 5px;
-    font-size: 14.5px;
-  }
-
-  .mode-tabs {
-    height: 41px;
-    margin-top: 8px;
-    margin-bottom: 9px;
-  }
-
-  .mode-tab {
-    height: 41px;
-    font-size: 16px;
-  }
-
-  .dropzone {
-    height: 165px;
-  }
-
-  .dropzone-icon,
-  .dropzone-icon svg {
-    width: 45px;
-    height: 45px;
-  }
-
-  .dropzone-title {
-    font-size: 19px;
-  }
-
-  .dropzone-subtitle {
-    font-size: 13.5px;
-  }
-
-  .dropzone-hint {
-    font-size: 11.5px;
-  }
-
-  .right-panel {
-    margin-top: 11px;
-  }
-
-  .drop-options .setting-title {
-    font-size: 16px;
-  }
-
-  .drop-options .setting-description {
-    font-size: 12px;
-  }
-
-  .drop-options .setting-icon,
-  .drop-options .setting-icon svg {
-    width: 25px;
-    height: 25px;
-  }
-
-  .drop-options .setting-icon {
-    flex-basis: 25px;
-  }
-
-  .drop-options .setting-row {
-    min-height: 51px;
-  }
-
-  .drop-options .pill {
-    height: 38px;
-    font-size: 13.5px;
-  }
-
-  .drop-options .password-input {
-    height: 39px;
-  }
-
-  .btn {
-    height: 44px;
-    font-size: 15px;
-  }
-
-  .privacy-note {
-    font-size: 10px;
-  }
-
-  .app-footer {
-    height: 45px;
-    flex-basis: 45px;
-  }
-
-  .footer-links {
-    bottom: 5px;
-    font-size: 12px;
-  }
-}
-
-
-/* =========================================================
    VERY SMALL MOBILE
    ========================================================= */
 
@@ -1447,6 +1350,7 @@ a {
   .brand-mark {
     width: 25px;
     height: 31px;
+    flex-basis: 25px;
   }
 
   .theme-switch {
@@ -1475,8 +1379,14 @@ a {
     padding-right: 16px;
   }
 
+  /*
+   * On genuinely narrow screens, allow the hero to wrap rather
+   * than creating horizontal overflow.
+   */
   .panel-heading h1 {
-    font-size: 28px;
+    white-space: normal;
+    font-size: clamp(27px, 8.2vw, 31px);
+    text-wrap: balance;
   }
 
   .panel-description {
@@ -1485,99 +1395,6 @@ a {
 
   .mode-tabs {
     max-width: 280px;
-  }
-
-  .dropzone {
-    height: 160px;
-  }
-
-  .dropzone-icon,
-  .dropzone-icon svg {
-    width: 43px;
-    height: 43px;
-  }
-
-  .dropzone-title {
-    font-size: 18px;
-  }
-
-  .dropzone-subtitle {
-    font-size: 13px;
-  }
-
-  .dropzone-hint {
-    font-size: 11px;
-  }
-
-  .drop-options .setting-title {
-    font-size: 15.5px;
-  }
-
-  .drop-options .setting-description {
-    font-size: 11.5px;
-  }
-
-  .drop-options .setting-icon,
-  .drop-options .setting-icon svg {
-    width: 24px;
-    height: 24px;
-  }
-
-  .drop-options .setting-icon {
-    flex-basis: 24px;
-  }
-
-  .drop-options .setting-row {
-    min-height: 49px;
-  }
-
-  .drop-options .settings-switch {
-    width: 48px;
-    height: 30px;
-    flex-basis: 48px;
-  }
-
-  .drop-options .settings-switch span {
-    width: 22px;
-    height: 22px;
-  }
-
-  .drop-options .settings-switch.is-on span {
-    transform: translateX(18px);
-  }
-
-  .drop-options .pill {
-    height: 37px;
-    font-size: 13px;
-  }
-
-  .drop-options .password-input {
-    height: 38px;
-    font-size: 12.5px;
-  }
-
-  .btn {
-    height: 43px;
-    font-size: 15px;
-  }
-
-  .privacy-note {
-    font-size: 9.5px;
-  }
-
-  .privacy-note span {
-    font-size: 10.5px;
-  }
-
-  .app-footer {
-    height: 43px;
-    flex-basis: 43px;
-  }
-
-  .footer-links {
-    bottom: 4px;
-    font-size: 11.5px;
-    gap: 27px;
   }
 }
 
@@ -1631,28 +1448,19 @@ a {
 
 @media (max-width: 767px) {
   .privacy-note {
-    margin-top: 6px;
-    font-size: 10.5px;
+    margin-top: 10px;
+    font-size: 12px;
+    line-height: 1.25;
   }
 
   .privacy-note span {
-    font-size: 11.5px;
+    font-size: 13px;
   }
 
   .privacy-lock,
   .privacy-lock svg {
-    width: 12px;
-    height: 12px;
-  }
-}
-
-@media (max-width: 430px) {
-  .privacy-note {
-    font-size: 9px;
-  }
-
-  .privacy-note span {
-    font-size: 10px;
+    width: 14px;
+    height: 14px;
   }
 }
 
@@ -1684,6 +1492,26 @@ a {
 
 ::view-transition-new(root) {
   z-index: 2;
+}
+
+
+/* =========================================================
+   ACCESSIBILITY / REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 
