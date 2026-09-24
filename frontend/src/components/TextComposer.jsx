@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import {
   getCodeMirrorExtensions,
   useCodeMirrorTheme,
 } from '../utils/codemirror';
+import { detectLanguage } from '../utils/detectLanguage';
 import './TextComposer.css';
 
 const LANGUAGES = [
-  { value: '', label: 'Plain text' },
   { value: 'javascript', label: 'JavaScript' },
   { value: 'python', label: 'Python' },
   { value: 'bash', label: 'Shell' },
@@ -15,6 +15,24 @@ const LANGUAGES = [
   { value: 'html', label: 'HTML' },
   { value: 'css', label: 'CSS' },
 ];
+
+const AUTO = 'auto';
+
+function Switch({ checked, onChange, label, disabled }) {
+  return (
+    <button
+      type="button"
+      className={`settings-switch${checked ? ' is-on' : ''}`}
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+    >
+      <span />
+    </button>
+  );
+}
 
 export default function TextComposer({
   value,
@@ -27,9 +45,47 @@ export default function TextComposer({
   const [isExpanded, setIsExpanded] = useState(false);
   const expandButtonRef = useRef(null);
   const modalRef = useRef(null);
-  const languageLabel =
-    LANGUAGES.find((option) => option.value === language)?.label ??
-    'Plain text';
+
+  // Syntax highlighting is "on" whenever a real language or auto-detect is
+  // selected; it's "off" (plain text) when language is ''.
+  const [syntaxEnabled, setSyntaxEnabled] = useState(language !== '');
+  // Remember the last non-empty selection so re-enabling the switch
+  // restores it instead of defaulting back to auto every time.
+  const [lastSelection, setLastSelection] = useState(
+    language !== '' ? language : AUTO,
+  );
+
+  const detectedLanguage = useMemo(
+    () => (syntaxEnabled && language === AUTO ? detectLanguage(value) : ''),
+    [syntaxEnabled, language, value],
+  );
+
+  // The language actually handed to CodeMirror/highlighting: resolve
+  // 'auto' down to a concrete guess (or plain text if nothing matches).
+  const effectiveLanguage = syntaxEnabled
+    ? language === AUTO
+      ? detectedLanguage
+      : language
+    : '';
+
+  const handleSyntaxToggle = (enabled) => {
+    setSyntaxEnabled(enabled);
+    onLanguageChange(enabled ? lastSelection : '');
+  };
+
+  const handleLanguageSelect = (nextValue) => {
+    setLastSelection(nextValue);
+    onLanguageChange(nextValue);
+  };
+
+  const languageLabel = !syntaxEnabled
+    ? 'Plain text'
+    : language === AUTO
+      ? detectedLanguage
+        ? `Auto · ${LANGUAGES.find((option) => option.value === detectedLanguage)?.label}`
+        : 'Auto-detect'
+      : (LANGUAGES.find((option) => option.value === language)?.label ??
+        'Plain text');
 
   useEffect(() => {
     if (!isExpanded) return undefined;
@@ -78,7 +134,7 @@ export default function TextComposer({
           className="code-mirror-surface text-composer-editor"
           value={value}
           onChange={onChange}
-          extensions={getCodeMirrorExtensions(language)}
+          extensions={getCodeMirrorExtensions(effectiveLanguage)}
           theme={theme}
           basicSetup
           placeholder="Paste text or code…"
@@ -104,18 +160,31 @@ export default function TextComposer({
           </svg>
         </button>
       </div>
-      <select
-        className="text-composer-lang"
-        value={language}
-        onChange={(e) => onLanguageChange(e.target.value)}
-        disabled={disabled}
-      >
-        {LANGUAGES.map((lang) => (
-          <option key={lang.value} value={lang.value}>
-            {lang.label}
-          </option>
-        ))}
-      </select>
+      <div className="text-composer-syntax-row">
+        <Switch
+          checked={syntaxEnabled}
+          onChange={handleSyntaxToggle}
+          label="Syntax highlighting"
+          disabled={disabled}
+        />
+        <span className="text-composer-syntax-label">Syntax highlighting</span>
+
+        {syntaxEnabled && (
+          <select
+            className="text-composer-lang"
+            value={language}
+            onChange={(e) => handleLanguageSelect(e.target.value)}
+            disabled={disabled}
+          >
+            <option value={AUTO}>Auto-detect</option>
+            {LANGUAGES.map((lang) => (
+              <option key={lang.value} value={lang.value}>
+                {lang.label}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
 
       {isExpanded && (
         <div
@@ -138,19 +207,28 @@ export default function TextComposer({
                 <h2 id="expanded-editor-title">{languageLabel}</h2>
               </div>
               <div className="editor-modal-actions">
-                <select
-                  className="text-composer-lang editor-modal-language"
-                  value={language}
-                  onChange={(event) => onLanguageChange(event.target.value)}
+                <Switch
+                  checked={syntaxEnabled}
+                  onChange={handleSyntaxToggle}
+                  label="Syntax highlighting"
                   disabled={disabled}
-                  aria-label="Language"
-                >
-                  {LANGUAGES.map((lang) => (
-                    <option key={lang.value} value={lang.value}>
-                      {lang.label}
-                    </option>
-                  ))}
-                </select>
+                />
+                {syntaxEnabled && (
+                  <select
+                    className="text-composer-lang editor-modal-language"
+                    value={language}
+                    onChange={(event) => handleLanguageSelect(event.target.value)}
+                    disabled={disabled}
+                    aria-label="Language"
+                  >
+                    <option value={AUTO}>Auto-detect</option>
+                    {LANGUAGES.map((lang) => (
+                      <option key={lang.value} value={lang.value}>
+                        {lang.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <button
                   type="button"
                   className="editor-icon-button"
@@ -172,7 +250,7 @@ export default function TextComposer({
               className="code-mirror-surface editor-modal-editor"
               value={value}
               onChange={onChange}
-              extensions={getCodeMirrorExtensions(language)}
+              extensions={getCodeMirrorExtensions(effectiveLanguage)}
               theme={theme}
               basicSetup
               disabled={disabled}
