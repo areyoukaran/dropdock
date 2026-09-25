@@ -9,11 +9,21 @@ import './TextComposer.css';
 
 const LANGUAGES = [
   { value: 'javascript', label: 'JavaScript' },
+  { value: 'typescript', label: 'TypeScript' },
   { value: 'python', label: 'Python' },
+  { value: 'java', label: 'Java' },
+  { value: 'cpp', label: 'C++' },
+  { value: 'go', label: 'Go' },
+  { value: 'rust', label: 'Rust' },
+  { value: 'php', label: 'PHP' },
+  { value: 'sql', label: 'SQL' },
   { value: 'bash', label: 'Shell' },
   { value: 'json', label: 'JSON' },
+  { value: 'yaml', label: 'YAML' },
   { value: 'html', label: 'HTML' },
+  { value: 'xml', label: 'XML' },
   { value: 'css', label: 'CSS' },
+  { value: 'markdown', label: 'Markdown' },
 ];
 
 const AUTO = 'auto';
@@ -170,19 +180,27 @@ export default function TextComposer({
         <span className="text-composer-syntax-label">Syntax highlighting</span>
 
         {syntaxEnabled && (
-          <select
-            className="text-composer-lang"
-            value={language}
-            onChange={(e) => handleLanguageSelect(e.target.value)}
-            disabled={disabled}
-          >
-            <option value={AUTO}>Auto-detect</option>
-            {LANGUAGES.map((lang) => (
-              <option key={lang.value} value={lang.value}>
-                {lang.label}
-              </option>
-            ))}
-          </select>
+          <>
+            <select
+              className="text-composer-lang"
+              value={language}
+              onChange={(e) => handleLanguageSelect(e.target.value)}
+              disabled={disabled}
+            >
+              <option value={AUTO}>Auto-detect</option>
+              {LANGUAGES.map((lang) => (
+                <option key={lang.value} value={lang.value}>
+                  {lang.label}
+                </option>
+              ))}
+            </select>
+            {language === AUTO && detectedLanguage && (
+              <span className="text-composer-detected-lang">
+                {LANGUAGES.find((option) => option.value === detectedLanguage)
+                  ?.label}
+              </span>
+            )}
+          </>
         )}
       </div>
 
