@@ -252,6 +252,7 @@ async def get_drop_meta(slug: str, db: AsyncSession = Depends(get_db)):
     return DropMetaOut(
         slug=drop.slug,
         drop_type=drop.drop_type.value,
+        expiry_mode=drop.expiry_mode.value,
         requires_password=drop.password_hash is not None,
         is_expired=drop.is_expired(),
         # Filenames and sizes are real content metadata, not safe to expose
@@ -381,15 +382,23 @@ async def get_download_url(
         if not consumed:
             raise HTTPException(410, detail="This drop has reached its download limit")
 
+    # View-once files are meant to be *seen*, not kept: when the type can be
+    # rendered by the browser, hand back an inline URL instead of a forced
+    # download, and expire it fast since it's only ever opened once anyway.
+    inline = drop.expiry_mode == ExpiryMode.VIEW_ONCE and drop_service.is_previewable(
+        target_file.content_type
+    )
     expires_in = 60 if drop.expiry_mode == ExpiryMode.VIEW_ONCE or drop.max_downloads == 1 else 300
     url = storage_service.generate_download_url(
         target_file.storage_key,
         target_file.original_filename,
         expires_in=expires_in,
+        inline=inline,
     )
     return DownloadUrlOut(
         filename=target_file.original_filename,
         url=url,
         content_type=target_file.content_type,
         size_bytes=target_file.size_bytes,
+        disposition="inline" if inline else "attachment",
     )

@@ -13,6 +13,24 @@ _TIME_EXPIRY_MAP = {
     TimeExpiryOption.SEVEN_DAYS: timedelta(days=7),
 }
 
+# Content types the browser can render inline without a plugin. A view-once
+# file only gets a true "view" (Content-Disposition: inline) when its type
+# is on this list - everything else falls back to a one-time download,
+# since there's no way to "view" a .zip or .exe without saving it first.
+_PREVIEWABLE_CONTENT_TYPES = {
+    "application/pdf",
+    "text/plain",
+    "text/csv",
+    "text/markdown",
+}
+_PREVIEWABLE_PREFIXES = ("image/", "text/")
+
+
+def is_previewable(content_type: str) -> bool:
+    if content_type in _PREVIEWABLE_CONTENT_TYPES:
+        return True
+    return content_type.startswith(_PREVIEWABLE_PREFIXES)
+
 
 class DropNotFoundError(Exception):
     pass

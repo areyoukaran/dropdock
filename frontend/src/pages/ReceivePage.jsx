@@ -15,6 +15,7 @@ import {
   ApiError,
 } from '../api/client';
 import { copyText } from '../utils/clipboard';
+import './ReceivePage.css';
 
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B';
@@ -38,6 +39,11 @@ export default function ReceivePage() {
   const [consumedNotice, setConsumedNotice] = useState(null);
   const [unlocking, setUnlocking] = useState(false);
   const [textCopied, setTextCopied] = useState(false);
+  // { fileId, filename, contentType, url } of a view-once file currently
+  // being shown in-page, once and never again — closing/refreshing the tab
+  // loses this state and the server has already burned the one view.
+  const [previewFile, setPreviewFile] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   useEffect(() => {
     let isCurrent = true;
@@ -100,16 +106,32 @@ export default function ReceivePage() {
 
   const handleDownload = async (fileId) => {
     setError(null);
+    setDownloadingId(fileId);
     try {
       const result = await getDownloadUrl(slug, fileId, password || undefined);
-      window.location.assign(result.url);
-      if (meta.files.length === 1) {
-        setConsumedNotice('Download started.');
+      if (result.disposition === 'inline') {
+        // View-once + previewable: show it in the page instead of handing
+        // out a link. The server has already burned the single view by
+        // the time this response comes back, so there's nothing left to
+        // re-fetch if the tab is closed or refreshed.
+        setPreviewFile({
+          fileId,
+          filename: result.filename,
+          contentType: result.content_type,
+          url: result.url,
+        });
+      } else {
+        window.location.assign(result.url);
+        if (meta.files.length === 1) {
+          setConsumedNotice('Download started.');
+        }
       }
     } catch (e) {
       setError(
         e instanceof ApiError ? e.message : "Couldn't download this file.",
       );
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -318,20 +340,76 @@ export default function ReceivePage() {
 
       {!isTextDrop && !needsPassword && (
         <ul className="download-list">
-          {filesToShow.map((file) => (
-            <li key={file.id} className="download-row">
-              <div className="download-row-meta">
-                <span className="file-row-name">{file.original_filename}</span>
-                <span className="file-row-size">
-                  {formatBytes(file.size_bytes)}
-                </span>
-              </div>
-              <Button size="sm" onClick={() => handleDownload(file.id)}>
-                Download
-              </Button>
-            </li>
-          ))}
+          {filesToShow.map((file) => {
+            const isViewed = previewFile?.fileId === file.id;
+            const isViewOnce = meta.expiry_mode === 'view_once';
+            const isPreviewable =
+              file.content_type.startsWith('image/') ||
+              file.content_type.startsWith('text/') ||
+              file.content_type === 'application/pdf';
+            return (
+              <li key={file.id} className="download-row">
+                <div className="download-row-meta">
+                  <span className="file-row-name">
+                    {file.original_filename}
+                  </span>
+                  <span className="file-row-size">
+                    {formatBytes(file.size_bytes)}
+                  </span>
+                </div>
+                {isViewed ? (
+                  <span className="status-note view-once-consumed-tag">
+                    Viewed
+                  </span>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={() => handleDownload(file.id)}
+                    disabled={downloadingId === file.id}
+                  >
+                    {downloadingId === file.id
+                      ? 'Opening…'
+                      : isViewOnce && isPreviewable
+                        ? 'View once'
+                        : isViewOnce
+                          ? 'Download (one time)'
+                          : 'Download'}
+                  </Button>
+                )}
+              </li>
+            );
+          })}
         </ul>
+      )}
+
+      {previewFile && (
+        <div className="view-once-preview">
+          <div className="received-text-toolbar">
+            <span className="received-text-hint">
+              {previewFile.filename} · viewable once — gone if you leave or
+              refresh this page
+            </span>
+          </div>
+          {previewFile.contentType.startsWith('image/') ? (
+            <img
+              className="view-once-preview-image"
+              src={previewFile.url}
+              alt={previewFile.filename}
+            />
+          ) : previewFile.contentType === 'application/pdf' ? (
+            <iframe
+              className="view-once-preview-frame"
+              src={previewFile.url}
+              title={previewFile.filename}
+            />
+          ) : (
+            <iframe
+              className="view-once-preview-frame view-once-preview-text"
+              src={previewFile.url}
+              title={previewFile.filename}
+            />
+          )}
+        </div>
       )}
 
       {consumedNotice && <p className="status-note">{consumedNotice}</p>}

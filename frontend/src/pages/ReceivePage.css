@@ -1,0 +1,41 @@
+/* View-once file preview: rendered in-page instead of downloaded, so
+   closing or refreshing the tab loses access for good (the server has
+   already marked the drop consumed by the time this renders). */
+
+.view-once-consumed-tag {
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-ink-secondary);
+}
+
+.view-once-preview {
+  margin-top: 16px;
+}
+
+.view-once-preview-image {
+  display: block;
+  width: 100%;
+  max-height: 480px;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+}
+
+.view-once-preview-frame {
+  display: block;
+  width: 100%;
+  height: 480px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+}
+
+.view-once-preview-text {
+  background: var(--color-code-bg, var(--color-surface-raised));
+}

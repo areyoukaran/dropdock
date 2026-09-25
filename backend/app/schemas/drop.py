@@ -74,6 +74,9 @@ class DownloadUrlOut(BaseModel):
     url: str
     content_type: str
     size_bytes: int
+    # "inline" -> browser should render this in place (view-once preview);
+    # "attachment" -> normal download / Save As.
+    disposition: str = "attachment"
 
 
 class DropMetaOut(BaseModel):
@@ -81,6 +84,7 @@ class DropMetaOut(BaseModel):
 
     slug: str
     drop_type: str
+    expiry_mode: str
     requires_password: bool
     is_expired: bool
     files: list[DropFileOut] = []

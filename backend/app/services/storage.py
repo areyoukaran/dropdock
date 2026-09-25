@@ -60,21 +60,33 @@ class StorageService:
             ExtraArgs={"ContentType": content_type},
         )
 
-    def generate_download_url(self, key: str, filename: str, expires_in: int = 300) -> str:
+    def generate_download_url(
+        self,
+        key: str,
+        filename: str,
+        expires_in: int = 300,
+        inline: bool = False,
+    ) -> str:
         """
         Signed, time-limited download link. expires_in defaults to 5 minutes -
         long enough for a browser to start the download, short enough that
         the link is useless if it leaks or gets cached somewhere.
 
+        inline=True asks the browser to render the response in place
+        (Content-Disposition: inline) instead of forcing a Save As dialog.
+        Used for view-once previews of images/text/PDFs, where the point is
+        to *show* the content once, not hand over a file to keep.
+
         Generated using the PUBLIC client so the resulting URL points at an
         address the browser can resolve, not the internal Docker hostname.
         """
+        disposition = "inline" if inline else "attachment"
         return self._public_client.generate_presigned_url(
             "get_object",
             Params={
                 "Bucket": self.bucket,
                 "Key": key,
-                "ResponseContentDisposition": f'attachment; filename="{filename}"',
+                "ResponseContentDisposition": f'{disposition}; filename="{filename}"',
             },
             ExpiresIn=expires_in,
         )
