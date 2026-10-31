@@ -162,6 +162,14 @@ export async function getDownloadUrl(slug, fileId, password) {
   });
 }
 
+export async function getArchiveDownloadUrl(slug, password) {
+  return request(`${API_BASE}/api/drops/${encodeURIComponent(slug)}/download-archive`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(password ? { password } : {}),
+  });
+}
+
 export async function getHealth() {
   return request(`${API_BASE}/health`);
 }

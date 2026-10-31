@@ -263,14 +263,14 @@
   .setting-title {
     font-size: 18px;
     line-height: 1.15;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
   }
 
   .setting-description {
     margin-top: 2px;
     font-size: 13px;
     line-height: 1.2;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
   }
 
   /*

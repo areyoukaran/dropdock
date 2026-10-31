@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect,useLayoutEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Link, useLocation} from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, Navigate, useLocation} from 'react-router-dom';
 import CreatePage from './pages/CreatePage';
 import AboutPage from './pages/AboutPage';
 import PrivacyPage from './pages/PrivacyPage';
@@ -121,8 +121,8 @@ function Header({ theme, onToggleTheme }) {
       </Link>
 
       <div className="header-right">
-        <Link className="header-page-link" to="/about">
-          About
+        <Link className="header-page-link" to="/faq">
+          FAQ
         </Link>
 
         <Link className="header-page-link" to="/privacy">
@@ -164,7 +164,7 @@ function Footer() {
       </div>
 
       <div className="footer-links">
-        <Link to="/about">About</Link>
+        <Link to="/faq">FAQ</Link>
 
         <Link to="/privacy">Privacy</Link>
       </div>
@@ -351,9 +351,11 @@ export default function App() {
             />
 
             <Route
-              path="/about"
+              path="/faq"
               element={<AboutPage />}
             />
+
+            <Route path="/about" element={<Navigate to="/faq" replace />} />
 
             <Route
               path="/privacy"

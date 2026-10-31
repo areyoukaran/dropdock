@@ -1,8 +1,27 @@
-/* View-once file preview: rendered in-page instead of downloaded, so
-   closing or refreshing the tab loses access for good (the server has
-   already marked the drop consumed by the time this renders). */
+/* View-once / single-download file preview: rendered in-page instead of
+   silently downloaded, so closing or refreshing the tab loses access for
+   good (the server has already marked that file consumed/exhausted by
+   the time this renders). */
 
-.view-once-consumed-tag {
+/* .download-row is `display:flex` by default (see App.css); a row that's
+   grown a preview underneath needs to stack instead of staying a single
+   line. */
+.download-row:has(.view-once-preview) {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.download-row-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-width: 0;
+  width: 100%;
+}
+
+.file-exhausted-tag {
   margin: 0;
   padding: 4px 10px;
   border-radius: 999px;
@@ -13,14 +32,46 @@
   color: var(--color-ink-secondary);
 }
 
+.archive-download-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.archive-download-row > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.archive-download-row span {
+  color: var(--color-ink-secondary);
+  font-size: 13px;
+}
+
+@media (max-width: 520px) {
+  .archive-download-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+/* ---- Preview ---- */
+
 .view-once-preview {
-  margin-top: 16px;
+  margin-top: 4px;
 }
 
 .view-once-preview-image {
   display: block;
   width: 100%;
-  max-height: 480px;
+  max-height: 70vh;
   object-fit: contain;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
@@ -30,10 +81,16 @@
 .view-once-preview-frame {
   display: block;
   width: 100%;
-  height: 480px;
+  height: 60vh;
+  min-height: 420px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface-raised);
+}
+
+.view-once-preview-frame-pdf {
+  height: 80vh;
+  min-height: 560px;
 }
 
 .view-once-preview-text {

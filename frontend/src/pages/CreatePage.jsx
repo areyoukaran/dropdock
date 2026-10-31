@@ -24,6 +24,14 @@ const DEFAULT_OPTIONS = {
   password: '',
 };
 
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+const MAX_DROP_SIZE_BYTES = 100 * 1024 * 1024;
+const MAX_FILES_PER_DROP = 5;
+
+function formatMegabytes(bytes) {
+  return `${Math.ceil(bytes / (1024 * 1024))} MB`;
+}
+
 export default function CreatePage() {
   const [searchParams] = useSearchParams();
   const [mode, setMode] = useState(() =>
@@ -77,8 +85,35 @@ export default function CreatePage() {
 
 
   const handleFilesSelected = (newFiles) => {
-    setFiles((prev) => [...prev, ...newFiles]);
     setError(null);
+
+    const oversizedFile = newFiles.find(
+      (file) => file.size > MAX_FILE_SIZE_BYTES,
+    );
+    if (oversizedFile) {
+      setError(
+        `"${oversizedFile.name}" is too large. Each file must be ${formatMegabytes(MAX_FILE_SIZE_BYTES)} or smaller.`,
+      );
+      return;
+    }
+
+    setFiles((prev) => {
+      const nextFiles = [...prev, ...newFiles];
+      if (nextFiles.length > MAX_FILES_PER_DROP) {
+        setError(`You can add up to ${MAX_FILES_PER_DROP} files to one drop.`);
+        return prev;
+      }
+
+      const totalSize = nextFiles.reduce((sum, file) => sum + file.size, 0);
+      if (totalSize > MAX_DROP_SIZE_BYTES) {
+        setError(
+          `These files are too large together. A drop must be ${formatMegabytes(MAX_DROP_SIZE_BYTES)} or smaller.`,
+        );
+        return prev;
+      }
+
+      return nextFiles;
+    });
   };
 
   const handleRemoveFile = (index) => {

@@ -1086,8 +1086,8 @@ a {
     font-size: 31px;
     line-height: 1.02;
     letter-spacing: -0.065em;
-    white-space: nowrap;
     max-width: 100%;
+    overflow-wrap: anywhere;
   }
 
   .panel-description {
@@ -1166,7 +1166,7 @@ a {
     letter-spacing: 0.16em;
   }
 
-  /* Balanced DropOptions sizing — deliberately not tiny. */
+  /* Balanced DropOptions sizing - deliberately not tiny. */
   .drop-options .settings-section {
     margin-bottom: 4px;
   }
@@ -1930,6 +1930,18 @@ a {
 
   .received-text-toolbar {
     align-items: flex-start;
+  }
+
+  @media (max-width: 520px) {
+    .download-row {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .download-row .btn {
+      align-self: flex-start;
+    }
   }
 
   .received-text-hint {

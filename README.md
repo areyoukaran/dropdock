@@ -1,65 +1,134 @@
 # DropDock
 
-Share anything, temporarily - files, text, or images. No signup, self-destructing links.
+> Temporary sharing for files, text, code, and images - without accounts.
 
-DropDock is a full-stack ephemeral sharing service: drop a file, a batch of files, or a code snippet, get a link (and a QR code), and it disappears on its own - after a set time, after a set number of downloads, or after a single view. Built as a portfolio project focused on backend correctness under concurrency, not just CRUD.
+DropDock is a full-stack ephemeral file-sharing application. Create a drop, share its link or QR code, and let the content expire automatically after a time limit, download limit, or one-time view.
+
+The project is intentionally focused on the engineering details behind temporary sharing: streamed uploads, private object storage, signed URLs, atomic consumption rules, rate limiting, and retry-safe cleanup.
 
 ## Live demo
 
-**https://dropdockk.vercel.app**
+**[dropdockk.vercel.app](https://dropdockk.vercel.app)**
 
-## Stack
+## Product capabilities
 
-| Layer | Choice |
-|---|---|
-| API | FastAPI, async SQLAlchemy |
-| Database | PostgreSQL |
-| Object storage | S3-compatible (MinIO locally; swap to AWS S3 / Cloudflare R2 in production) |
-| Background jobs | Celery + Celery Beat, Redis as broker |
-| Rate limiting | Redis fixed-window counters, per-IP |
-| Frontend | React (Vite) |
-| Code editor | CodeMirror 6, with syntax highlighting for Python, JavaScript, HTML, CSS, JSON |
-| Tests | pytest, including a real concurrency test |
+- Upload one file or a batch of files
+- Share text and code snippets with CodeMirror syntax highlighting
+- Paste images directly from the clipboard
+- Configure time-based expiry: 1 hour, 1 day, or 7 days
+- Configure download limits from 1 to 1,000
+- Combine time expiry and download limits; the first limit reached wins
+- Use view-once access for text and individual files
+- Download batch drops file-by-file or as a generated ZIP archive
+- Protect drops with Argon2-hashed passwords
+- Generate QR codes and copyable share links
+- Use the interface in light or dark mode
+- Rate-limit anonymous uploads, downloads, and password attempts
 
-## Features
+## Architecture
 
-- **Files, batches, text/code, and pasted images** - one link type, four content shapes, no signup required
-- **Three expiry modes, combinable** - time-based (1h / 1d / 7d), download-count ("burn after reading"), and view-once (never gets a raw downloadable link). Time and download-count can be set together; whichever limit hits first wins
-- **Password-protected drops** - argon2-hashed, checked server-side before any content or download URL is returned
-- **QR code + copyable link** on every created drop
-- **Syntax-highlighted code editor** for the text/code path, with a full-screen expand mode for longer snippets
-- **Light/dark theme**, WCAG AA contrast in both
+```text
+┌─────────────────────┐
+│ React + Vite client │
+└──────────┬──────────┘
+           │ HTTPS / JSON
+┌──────────▼──────────┐
+│ FastAPI application  │
+└──────┬──────┬───────┘
+       │      │
+       │      └──────────────┐
+       ▼                     ▼
+┌──────────────┐      ┌──────────────┐
+│ PostgreSQL   │      │ Redis        │
+│ metadata     │      │ rate limits  │
+└──────────────┘      │ Celery broker│
+                      └──────┬───────┘
+                             ▼
+                      ┌──────────────┐
+                      │ Celery worker│
+                      │ expiry sweep│
+                      └──────────────┘
 
-## Why this project exists
+FastAPI ───────────────► S3-compatible object storage
+                         MinIO locally
+                         AWS S3 / Cloudflare R2 in production
+```
 
-Most "share a file" side projects stop at "upload to a bucket, return a link." The interesting engineering problems are underneath that:
+### Technology stack
 
-- **Streaming uploads** so a large file never sits fully in server memory
-- **Signed, time-limited download URLs** - the API never proxies file bytes; the browser downloads directly from object storage
-- **Race-safe consumption** - a "1-download-only" link hit by two people at the same instant must not let both succeed
-- **Scheduled cleanup** that doesn't block the request path - expired drops are swept and deleted by a background worker, not deleted synchronously when someone happens to hit an expired link
+| Area | Technology |
+| --- | --- |
+| Frontend | React 19, Vite, React Router |
+| Editor | CodeMirror 6 |
+| API | FastAPI, Uvicorn |
+| Validation | Pydantic v2 |
+| Database | PostgreSQL, async SQLAlchemy |
+| Object storage | S3-compatible storage, MinIO locally |
+| Background jobs | Celery and Celery Beat |
+| Rate limiting | Redis fixed-window counters |
+| Authentication | Optional per-drop passwords with Argon2 |
+| Testing | pytest, including PostgreSQL concurrency tests |
+| Deployment | Docker Compose locally, Vercel-compatible frontend, containerized backend |
 
-## How expiry actually works
+## Security and lifecycle model
 
-A drop can expire three ways, and the harder-to-get-right ones are backed by real logic, not just a cron job:
+### Private object storage
 
-- **Time-based** - checked live on every request (`is_expired()`), so a request that lands between sweeps still correctly rejects an expired drop
-- **Download-count** - `max_downloads` is enforced with a single atomic SQL statement:
+Uploaded files are never made public. The API stores only metadata and an object-storage key. When a recipient requests a file, the API returns a short-lived signed URL and the browser downloads directly from object storage.
 
-  ```sql
-  UPDATE drops
-  SET download_count = download_count + 1
-  WHERE id = :id AND download_count < max_downloads
-  ```
+### Atomic access consumption
 
-  Only the request whose `UPDATE` actually matches a row succeeds. Two concurrent requests can't both observe "not yet at limit" and both increment - the database serializes it, not application code. This is covered by `backend/tests/test_expiry_concurrency.py`, which fires 10 simultaneous consume attempts at a 1-download-limit drop and asserts exactly one succeeds.
-- **View-once** - same atomic pattern, on a `consumed` boolean instead of a counter.
+Download and view-once limits are enforced with database-level conditional updates rather than a read/check/write sequence. This prevents concurrent requests from both consuming the final available access.
 
-Actual deletion (removing files from object storage, marking the row deleted) happens separately: a Celery Beat schedule triggers a sweep every 5 minutes. This means expiry enforcement (instant, per-request) and expiry cleanup (batched, scheduled) are two different mechanisms - enforcement never waits on the sweep.
+For batch drops:
 
-## Running locally
+- Individual file downloads have per-file counters.
+- ZIP archive downloads have a separate archive counter.
+- A batch can be retrieved as a complete archive without changing the behavior of individual file downloads.
+- View-once batch files are consumed independently; ZIP downloads are intentionally unavailable for view-once drops.
 
-Everything runs in Docker - no cloud accounts, no cost.
+### Expiry enforcement and cleanup
+
+Expiry is checked synchronously on every access request, so an expired drop is rejected even if the cleanup worker has not run yet. Physical cleanup is performed separately by a scheduled sweep that deletes stored objects and marks the database record deleted.
+
+## Resource limits
+
+The backend enforces these limits independently of frontend validation:
+
+| Resource | Limit |
+| --- | ---: |
+| Text content | 250,000 characters |
+| Individual file | 50 MB |
+| Total drop size | 100 MB |
+| Files per drop | 5 |
+| Password length | 4–128 characters |
+| Filename length | 512 characters |
+| Time expiry | 1 hour, 1 day, or 7 days |
+
+The limits are configurable through environment variables. The defaults are defined in [backend/app/core/config.py](backend/app/core/config.py).
+
+## API surface
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/drops/text` | Create a text or code drop |
+| `POST` | `/api/drops/files` | Create a file or batch drop |
+| `GET` | `/api/drops/{slug}/meta` | Read safe public metadata |
+| `POST` | `/api/drops/{slug}/unlock/text` | Verify access and return text |
+| `POST` | `/api/drops/{slug}/unlock/files` | Verify access and return file metadata |
+| `POST` | `/api/drops/{slug}/download/{file_id}` | Consume one file access and return a signed URL |
+| `POST` | `/api/drops/{slug}/download-archive` | Generate or reuse a signed ZIP archive URL |
+| `GET` | `/health` | Health check |
+
+## Local development
+
+### Prerequisites
+
+- Docker Desktop with Compose
+- Node.js and npm
+- Python 3.12+ for running backend tooling outside Docker
+
+### Start the services
 
 ```bash
 git clone https://github.com/areyoukaran/dropdock.git
@@ -68,15 +137,30 @@ cp backend/.env.example backend/.env
 docker compose up --build
 ```
 
-This starts:
-- `postgres` - drop metadata, expiry rules
-- `redis` - cache, rate limiting, Celery broker
-- `minio` - local S3-compatible object storage (console at `localhost:9001`, login `dropzone` / `dropzone123`)
-- `backend` - FastAPI app at `localhost:8000`
-- `worker` - Celery worker processing background tasks
-- `beat` - Celery Beat scheduler, triggers the expiry sweep every 5 minutes
+If a build fails while `pip` is downloading a package with a timeout or
+connection reset, retry the same command. The backend image configures pip
+with a longer timeout and multiple retries for transient package-index
+failures. A persistent failure usually indicates that Docker cannot reach
+`pypi.org` or `files.pythonhosted.org`; check the Docker Desktop network,
+proxy, VPN, or firewall configuration before changing application code.
 
-Then, separately:
+Docker Compose starts:
+
+| Service | Address | Purpose |
+| --- | --- | --- |
+| PostgreSQL | `localhost:5432` | Drop metadata |
+| Redis | `localhost:6379` | Rate limiting and Celery broker |
+| MinIO API | `localhost:9000` | S3-compatible object storage |
+| MinIO console | `localhost:9001` | Storage administration |
+| Backend | `localhost:8000` | FastAPI API |
+| Worker | - | Celery background tasks |
+| Beat | - | Five-minute expiry schedule |
+
+The local MinIO credentials are defined in `backend/.env.example`. Do not reuse them in production.
+
+### Start the frontend
+
+In a second terminal:
 
 ```bash
 cd frontend
@@ -84,54 +168,95 @@ npm install
 npm run dev
 ```
 
-Frontend runs at `localhost:5173`.
+The frontend runs at `http://localhost:5173`.
 
-## Running the tests
+Useful frontend commands:
 
 ```bash
-cd backend
-pip install -r requirements.txt
-pytest
+npm run build
+npm run lint
+npm run preview
 ```
 
-`test_expiry_concurrency.py` requires a running Postgres instance (via `docker compose up postgres`) since it tests real concurrent database writes, not mocked behavior.
+## Testing and benchmarks
 
-## Deploying
+The project's private test suite and benchmark scripts are maintained locally
+outside the published source tree. They cover API integration, expiry,
+per-file download limits, view-once concurrency, rate limiting, object
+storage, cleanup, and sustained-load measurements. They are intentionally
+excluded from the public repository and are not required at runtime.
 
-Local dev uses MinIO and plain HTTP by design - free, and nothing to configure. Before deploying publicly:
+## Configuration
 
-- Swap `S3_ENDPOINT_URL` for a real bucket (Cloudflare R2's free tier - 10GB storage, no egress fees - or AWS S3)
-- Terminate HTTPS/TLS at the reverse proxy or load balancer
-- Update the CORS allowlist in `backend/app/main.py` to the real frontend origin
-- Set `TRUSTED_PROXY_IPS` to the proxy addresses allowed to supply `X-Forwarded-For` - don't trust client-supplied forwarded headers directly
-- Use production-only values for `SECRET_KEY` and all database/Redis/storage credentials
+Backend configuration is loaded from `backend/.env` using Pydantic Settings. Important production variables include:
 
-None of the application code changes - only configuration.
-
-## What's deliberately not in v1
-
-Named on purpose rather than silently skipped:
-
-- **Virus scanning** - needs a paid external API; noted as a production next step
-- **Client-side end-to-end encryption** - a real stretch goal, not core to the launch scope
-- **Real-time collaborative text editing** - a different product
-
-## Project structure
-
+```dotenv
+ENVIRONMENT=production
+SECRET_KEY=<strong-random-secret>
+DATABASE_URL=postgresql+asyncpg://...
+REDIS_URL=redis://...
+S3_ENDPOINT_URL=https://...
+S3_PUBLIC_ENDPOINT_URL=https://...
+S3_ACCESS_KEY=<storage-access-key>
+S3_SECRET_KEY=<storage-secret>
+S3_BUCKET=<private-bucket>
+S3_USE_SSL=true
+CORS_ALLOWED_ORIGINS=https://your-frontend.example
+TRUSTED_PROXY_IPS=<trusted-proxy-addresses>
 ```
+
+The frontend reads its API origin from `VITE_API_BASE_URL`. See [frontend/.env.example](frontend/.env.example).
+
+## Production deployment checklist
+
+Before exposing an instance publicly:
+
+- Use unique production secrets for the application, database, Redis, and object storage.
+- Use HTTPS for the frontend, API, and signed object-storage URLs.
+- Use private object-storage buckets; access files only through signed URLs.
+- Configure `CORS_ALLOWED_ORIGINS` to the exact frontend origin.
+- Set `TRUSTED_PROXY_IPS` only to known reverse proxies.
+- Set `S3_ENDPOINT_URL` and `S3_PUBLIC_ENDPOINT_URL` to production-compatible endpoints.
+- Enable `S3_USE_SSL`.
+- Run the backend without `--reload`.
+- Run Celery worker and Beat, or explicitly enable the in-process sweep for a deployment where separate workers are unavailable.
+- Provide PostgreSQL and Redis health checks.
+- Verify that the frontend is never given backend or storage secrets.
+- Run the backend and frontend validation commands before deployment.
+
+## Project layout
+
+```text
 backend/
-  app/
-    api/        # FastAPI route handlers
-    core/       # config, database session, password hashing
-    models/     # SQLAlchemy models (Drop, DropFile)
-    schemas/    # Pydantic request/response models
-    services/   # storage (S3/MinIO), rate limiting, drop business logic
-    workers/    # Celery app + scheduled expiry sweep
-  tests/
+├── app/
+│   ├── api/          FastAPI route handlers
+│   ├── core/         Configuration, database, and password security
+│   ├── models/       SQLAlchemy Drop and DropFile models
+│   ├── schemas/      Pydantic request and response schemas
+│   ├── services/     Drop logic, storage, and rate limiting
+│   └── workers/      Celery tasks and expiry scheduling
+└── tests/            Unit and concurrency tests
+
 frontend/
-  src/
-    api/          # backend client
-    components/   # DropDock, DropOptions, TextComposer, ShareResult, etc.
-    pages/        # CreatePage, ReceivePage
-    utils/        # CodeMirror language/theme config
+├── src/
+│   ├── api/          Backend client
+│   ├── components/   Composer, editor, file, and sharing components
+│   ├── pages/        Create, receive, about, and privacy pages
+│   └── utils/        Clipboard, analytics, language detection, and editor helpers
+└── public/           Static assets and deployment metadata
 ```
+
+## Scope and known limitations
+
+The following are intentionally outside the current v1 scope:
+
+- Virus scanning
+- Client-side end-to-end encryption
+- Real-time collaborative editing
+- User accounts and persistent dashboards
+
+These are product decisions rather than hidden unfinished features. Virus scanning and end-to-end encryption are especially important considerations before using the service for sensitive or untrusted content at larger scale.
+
+## License
+
+No license has currently been declared for this repository. Contact the repository owner before redistributing or incorporating the project into another product.

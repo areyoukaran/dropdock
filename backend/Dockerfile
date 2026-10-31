@@ -9,7 +9,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# PyPI downloads can be slow or briefly interrupted in CI and Docker builds.
+# Keep dependency installation deterministic while allowing transient network
+# failures enough time to recover.
+ENV PIP_DEFAULT_TIMEOUT=120 \
+    PIP_RETRIES=10
+RUN pip install --no-cache-dir --disable-pip-version-check \
+    --retries 10 \
+    --timeout 120 \
+    -r requirements.txt
 
 COPY . .
 

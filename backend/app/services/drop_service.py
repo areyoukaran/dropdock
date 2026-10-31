@@ -55,8 +55,12 @@ def resolve_expires_at(time_expiry: TimeExpiryOption | None) -> datetime | None:
 
 
 async def get_drop_by_slug(db: AsyncSession, slug: str) -> Drop:
+    from sqlalchemy.orm import selectinload
+
     result = await db.execute(
-        select(Drop).where(Drop.slug == slug, Drop.is_deleted.is_(False))
+        select(Drop)
+        .where(Drop.slug == slug, Drop.is_deleted.is_(False))
+        .options(selectinload(Drop.files))
     )
     drop = result.scalar_one_or_none()
     if drop is None:
@@ -129,6 +133,45 @@ async def try_consume_download(db: AsyncSession, drop_id) -> bool:
     return result.scalar_one_or_none() is not None
 
 
+async def try_consume_archive_download(db: AsyncSession, drop_id, max_downloads: int) -> bool:
+    result = await db.execute(
+        update(Drop)
+        .where(
+            Drop.id == drop_id,
+            Drop.archive_download_count < max_downloads,
+        )
+        .values(archive_download_count=Drop.archive_download_count + 1)
+        .returning(Drop.id)
+    )
+    await db.commit()
+    return result.scalar_one_or_none() is not None
+
+
+async def try_set_archive_storage_key(db: AsyncSession, drop_id, storage_key: str) -> bool:
+    result = await db.execute(
+        update(Drop)
+        .where(Drop.id == drop_id, Drop.archive_storage_key.is_(None))
+        .values(archive_storage_key=storage_key)
+        .returning(Drop.id)
+    )
+    await db.commit()
+    return result.scalar_one_or_none() is not None
+
+
+async def replace_archive_storage_key(db: AsyncSession, drop_id, storage_key: str) -> str | None:
+    current = await db.execute(
+        select(Drop.archive_storage_key).where(Drop.id == drop_id)
+    )
+    previous_key = current.scalar_one_or_none()
+    result = await db.execute(
+        update(Drop)
+        .where(Drop.id == drop_id)
+        .values(archive_storage_key=storage_key)
+    )
+    await db.commit()
+    return previous_key
+
+
 async def try_consume_view_once(db: AsyncSession, drop_id) -> bool:
     """
     Same atomicity concern as try_consume_download, applied to view-once
@@ -139,6 +182,40 @@ async def try_consume_view_once(db: AsyncSession, drop_id) -> bool:
         .where(Drop.id == drop_id, Drop.consumed.is_(False))
         .values(consumed=True)
         .returning(Drop.id)
+    )
+    await db.commit()
+    return result.scalar_one_or_none() is not None
+
+
+async def try_consume_file_view_once(db: AsyncSession, file_id) -> bool:
+    """
+    Per-file counterpart to try_consume_view_once, for VIEW_ONCE drops that
+    contain files: each file gets its own single reveal instead of the
+    whole drop dying as soon as any one file is opened. Same atomic
+    False -> True flip, scoped to one DropFile row.
+    """
+    result = await db.execute(
+        update(DropFile)
+        .where(DropFile.id == file_id, DropFile.consumed.is_(False))
+        .values(consumed=True)
+        .returning(DropFile.id)
+    )
+    await db.commit()
+    return result.scalar_one_or_none() is not None
+
+
+async def try_consume_file_download(db: AsyncSession, file_id, max_downloads: int) -> bool:
+    """
+    Per-file counterpart to try_consume_download, for DOWNLOAD_COUNT drops
+    that contain files: the drop's max_downloads is each file's own
+    individual allowance, so downloading one file of a batch never uses up
+    the allowance of the others. Same atomic UPDATE ... WHERE guard.
+    """
+    result = await db.execute(
+        update(DropFile)
+        .where(DropFile.id == file_id, DropFile.download_count < max_downloads)
+        .values(download_count=DropFile.download_count + 1)
+        .returning(DropFile.id)
     )
     await db.commit()
     return result.scalar_one_or_none() is not None

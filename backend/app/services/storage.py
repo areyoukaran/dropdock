@@ -1,4 +1,7 @@
 import boto3
+import os
+import tempfile
+import zipfile
 from botocore.client import Config as BotoConfig
 from botocore.exceptions import ClientError
 
@@ -90,6 +93,32 @@ class StorageService:
             },
             ExpiresIn=expires_in,
         )
+
+    def create_zip_archive(self, files: list[tuple[str, str]], archive_key: str) -> None:
+        """Create a ZIP object from private storage without buffering files in memory."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            archive_path = os.path.join(temp_dir, "archive.zip")
+            with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED) as archive:
+                used_names: set[str] = set()
+                for storage_key, filename in files:
+                    safe_name = filename.replace("\\", "_").replace("/", "_").strip() or "unnamed"
+                    candidate = safe_name
+                    suffix = 2
+                    while candidate in used_names:
+                        candidate = f"{safe_name} ({suffix})"
+                        suffix += 1
+                    used_names.add(candidate)
+                    source_path = os.path.join(temp_dir, f"{len(used_names)}.data")
+                    self._client.download_file(self.bucket, storage_key, source_path)
+                    archive.write(source_path, arcname=candidate)
+
+            with open(archive_path, "rb") as archive_file:
+                self._client.upload_fileobj(
+                    archive_file,
+                    self.bucket,
+                    archive_key,
+                    ExtraArgs={"ContentType": "application/zip"},
+                )
 
     def delete_object(self, key: str) -> None:
         try:

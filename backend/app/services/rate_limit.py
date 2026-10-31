@@ -28,6 +28,9 @@ async def check_rate_limit(key: str, max_requests: int, window_seconds: int) -> 
     use case, and self-cleaning - no separate sweep needed for rate-limit
     keys since Redis expires them itself.
     """
+    if settings.environment == "development":
+        return
+
     r = get_redis()
     now_bucket = int(time.time() // window_seconds)
     redis_key = f"ratelimit:{key}:{now_bucket}"
@@ -44,8 +47,8 @@ async def check_rate_limit(key: str, max_requests: int, window_seconds: int) -> 
 async def upload_rate_limit(client_ip: str) -> None:
     await check_rate_limit(
         f"upload:{client_ip}",
-        max_requests=settings.rate_limit_uploads_per_hour,
-        window_seconds=3600,
+        max_requests=settings.rate_limit_uploads_per_window,
+        window_seconds=settings.rate_limit_upload_window_seconds,
     )
 
 
@@ -67,6 +70,6 @@ async def password_attempt_rate_limit(client_ip: str, slug: str) -> None:
     """
     await check_rate_limit(
         f"unlock:{client_ip}:{slug}",
-        max_requests=settings.rate_limit_password_attempts_per_minute,
-        window_seconds=60,
+        max_requests=settings.rate_limit_password_attempts_per_window,
+        window_seconds=settings.rate_limit_password_attempt_window_seconds,
     )

@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.models.drop import Drop
@@ -22,7 +23,11 @@ async def _sweep() -> int:
 
     try:
         async with session_factory() as db:
-            result = await db.execute(select(Drop).where(Drop.is_deleted.is_(False)))
+            result = await db.execute(
+                select(Drop)
+                .where(Drop.is_deleted.is_(False))
+                .options(selectinload(Drop.files))
+            )
             drops = result.scalars().all()
             deleted_count = 0
 
@@ -30,19 +35,14 @@ async def _sweep() -> int:
                 if not drop.is_expired():
                     continue
 
-                from sqlalchemy.orm import selectinload
-
-                file_result = await db.execute(
-                    select(Drop).where(Drop.id == drop.id).options(selectinload(Drop.files))
-                )
-                full_drop = file_result.scalar_one()
-
-                keys = [f.storage_key for f in full_drop.files]
+                keys = [f.storage_key for f in drop.files]
+                if drop.archive_storage_key:
+                    keys.append(drop.archive_storage_key)
                 if keys:
                     storage_service.delete_objects(keys)
 
-                full_drop.is_deleted = True
-                full_drop.deleted_at = datetime.now(timezone.utc)
+                drop.is_deleted = True
+                drop.deleted_at = datetime.now(timezone.utc)
                 deleted_count += 1
 
             await db.commit()

@@ -17,7 +17,7 @@ class TimeExpiryOption(str, Enum):
 
 
 class CreateTextDropRequest(BaseModel):
-    text_content: str = Field(..., min_length=1, max_length=500_000)
+    text_content: str = Field(..., min_length=1, max_length=250_000)
     text_language: str | None = None
     expiry_mode: ExpiryModeSchema
     time_expiry: TimeExpiryOption | None = None
@@ -30,17 +30,27 @@ class DropFileOut(BaseModel):
     original_filename: str
     content_type: str
     size_bytes: int
+    # True once this specific file can no longer be opened: a spent
+    # VIEW_ONCE reveal, or (for DOWNLOAD_COUNT drops) a file that has used
+    # up its own download allowance. Lets the frontend show "Viewed" /
+    # "Downloaded" for files already exhausted by someone else, instead of
+    # a live button that would just 410 on click.
+    consumed: bool = False
 
     class Config:
         from_attributes = True
 
     @classmethod
-    def from_model(cls, file):
+    def from_model(cls, file, max_downloads: int | None = None):
+        exhausted = file.consumed or (
+            max_downloads is not None and file.download_count >= max_downloads
+        )
         return cls(
             id=str(file.id),
             original_filename=file.original_filename,
             content_type=file.content_type,
             size_bytes=file.size_bytes,
+            consumed=exhausted,
         )
 
 
@@ -74,8 +84,20 @@ class DownloadUrlOut(BaseModel):
     url: str
     content_type: str
     size_bytes: int
-    # "inline" -> browser should render this in place (view-once preview);
-    # "attachment" -> normal download / Save As.
+    # "inline" -> `url` renders in place (view-once preview);
+    # "attachment" -> `url` is a normal download / Save As.
+    disposition: str = "attachment"
+    # Populated only for view-once previewable files: a second signed URL
+    # to the same object, forced to download, so the one-time reveal can
+    # be both looked at and saved without a second (already-consumed)
+    # unlock request.
+    download_url: str | None = None
+
+
+class ArchiveDownloadUrlOut(BaseModel):
+    filename: str
+    url: str
+    content_type: str = "application/zip"
     disposition: str = "attachment"
 
 
@@ -85,6 +107,7 @@ class DropMetaOut(BaseModel):
     slug: str
     drop_type: str
     expiry_mode: str
+    max_downloads: int | None = None
     requires_password: bool
     is_expired: bool
     files: list[DropFileOut] = []

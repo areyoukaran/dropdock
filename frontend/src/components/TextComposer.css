@@ -376,8 +376,8 @@
     align-items: center;
     box-sizing: border-box;
     width: 100%;
-    height: min(92dvh, 820px);
-    max-height: calc(100dvh - 48px);
+    height: 100dvh;
+    max-height: none;
 
     padding:
       max(12px, env(safe-area-inset-top))
@@ -456,6 +456,8 @@
 
   .editor-modal-header {
     min-height: 40px;
+    align-items: flex-start;
+    flex-wrap: wrap;
   }
 
   .editor-modal-header h2 {
@@ -480,6 +482,11 @@
 
     width: 36px;
     height: 36px;
+  }
+
+  .editor-modal-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 

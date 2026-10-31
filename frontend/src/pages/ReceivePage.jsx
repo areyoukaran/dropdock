@@ -12,10 +12,12 @@ import {
   unlockTextDrop,
   unlockFileDrop,
   getDownloadUrl,
+  getArchiveDownloadUrl,
   ApiError,
 } from '../api/client';
 import { copyText } from '../utils/clipboard';
 import './ReceivePage.css';
+
 
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B';
@@ -39,11 +41,18 @@ export default function ReceivePage() {
   const [consumedNotice, setConsumedNotice] = useState(null);
   const [unlocking, setUnlocking] = useState(false);
   const [textCopied, setTextCopied] = useState(false);
-  // { fileId, filename, contentType, url } of a view-once file currently
-  // being shown in-page, once and never again — closing/refreshing the tab
-  // loses this state and the server has already burned the one view.
-  const [previewFile, setPreviewFile] = useState(null);
+  // Map of fileId -> { filename, contentType, url, downloadUrl } for every
+  // view-once file revealed in this session, once and never again -
+  // closing/refreshing the tab loses this and the server has already
+  // burned that file's one view. Each file gets its own entry, so
+  // multiple files in the same drop can each be revealed independently.
+  const [previewFiles, setPreviewFiles] = useState({});
   const [downloadingId, setDownloadingId] = useState(null);
+  const [downloadingArchive, setDownloadingArchive] = useState(false);
+  // Files downloaded in this tab under a max-downloads-of-1 limit: the
+  // button should flip to "Downloaded" immediately, not wait for a
+  // refetch of /meta to find out the file is now exhausted.
+  const [downloadedOnceIds, setDownloadedOnceIds] = useState(new Set());
 
   useEffect(() => {
     let isCurrent = true;
@@ -111,19 +120,27 @@ export default function ReceivePage() {
       const result = await getDownloadUrl(slug, fileId, password || undefined);
       if (result.disposition === 'inline') {
         // View-once + previewable: show it in the page instead of handing
-        // out a link. The server has already burned the single view by
-        // the time this response comes back, so there's nothing left to
-        // re-fetch if the tab is closed or refreshed.
-        setPreviewFile({
-          fileId,
-          filename: result.filename,
-          contentType: result.content_type,
-          url: result.url,
-        });
+        // out a link. The server has already burned this file's single
+        // view by the time this response comes back, so there's nothing
+        // left to re-fetch if the tab is closed or refreshed. A separate,
+        // forced-download URL to the same object rides along so the
+        // person can also save a copy from this same reveal.
+        setPreviewFiles((prev) => ({
+          ...prev,
+          [fileId]: {
+            filename: result.filename,
+            contentType: result.content_type,
+            url: result.url,
+            downloadUrl: result.download_url,
+          },
+        }));
       } else {
         window.location.assign(result.url);
         if (meta.files.length === 1) {
           setConsumedNotice('Download started.');
+        }
+        if (meta.expiry_mode === 'download_count' && meta.max_downloads === 1) {
+          setDownloadedOnceIds((prev) => new Set(prev).add(fileId));
         }
       }
     } catch (e) {
@@ -132,6 +149,23 @@ export default function ReceivePage() {
       );
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleArchiveDownload = async () => {
+    if (downloadingArchive) return;
+    setError(null);
+    setDownloadingArchive(true);
+    try {
+      const result = await getArchiveDownloadUrl(slug, password || undefined);
+      window.location.assign(result.url);
+      setConsumedNotice('Archive download started.');
+    } catch (e) {
+      setError(
+        e instanceof ApiError ? e.message : "Couldn't download the archive.",
+      );
+    } finally {
+      setDownloadingArchive(false);
     }
   };
 
@@ -162,7 +196,7 @@ export default function ReceivePage() {
         <div className="status-block">
           <h2 className="status-title">Drop not found</h2>
           <p className="status-body">
-            This link doesn't lead anywhere — it may have been mistyped.
+            This link doesn't lead anywhere - it may have been mistyped.
           </p>
         </div>
       </div>
@@ -197,9 +231,16 @@ export default function ReceivePage() {
   const showTextUnlock = isTextDrop && !textContent;
   const showFilesUnlock = !isTextDrop && needsPassword;
   // Filenames/sizes come from meta only when the drop has no password; once
-  // a password is required, they only ever come from the unlock response —
+  // a password is required, they only ever come from the unlock response -
   // meta.files is intentionally empty for protected drops (see backend).
   const filesToShow = isFilesUnlocked ? unlockedFiles : meta.files;
+  const isFileExhausted = (file) =>
+    Boolean(previewFiles[file.id]) ||
+    downloadedOnceIds.has(file.id) ||
+    file.consumed;
+  const availableArchiveFiles = filesToShow.filter(
+    (file) => !isFileExhausted(file),
+  );
 
   return (
     <div className="card receive-card">
@@ -331,7 +372,6 @@ export default function ReceivePage() {
             )}
             theme={theme}
             basicSetup
-            editable={false}
             readOnly
             height="240px"
           />
@@ -339,77 +379,125 @@ export default function ReceivePage() {
       )}
 
       {!isTextDrop && !needsPassword && (
-        <ul className="download-list">
+        <>
+          {filesToShow.length > 1 &&
+            meta.expiry_mode !== 'view_once' &&
+            availableArchiveFiles.length > 0 && (
+            <div className="archive-download-row">
+              <div>
+                <strong>Download all files</strong>
+                <span>Get the complete drop as a ZIP archive.</span>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleArchiveDownload}
+                disabled={downloadingArchive}
+              >
+                {downloadingArchive ? 'Preparing…' : 'Download ZIP'}
+              </Button>
+            </div>
+          )}
+          <ul className="download-list">
           {filesToShow.map((file) => {
-            const isViewed = previewFile?.fileId === file.id;
+            const preview = previewFiles[file.id];
             const isViewOnce = meta.expiry_mode === 'view_once';
+            const isDownloadLimited = meta.expiry_mode === 'download_count';
+            const isSingleDownloadLimit =
+              isDownloadLimited && meta.max_downloads === 1;
             const isPreviewable =
               file.content_type.startsWith('image/') ||
               file.content_type.startsWith('text/') ||
               file.content_type === 'application/pdf';
+            const isViewOncePreview = isViewOnce && isPreviewable;
+            // A file is "used up" three ways: revealed just now in this
+            // tab (view-once), downloaded just now in this tab under a
+            // one-download limit, or already exhausted before this page
+            // ever loaded - the server tells us that last case via
+            // file.consumed regardless of which expiry mode it was, so we
+            // never show a live button that would just 410 on click.
+            const isExhausted =
+              isFileExhausted(file);
+            const exhaustedLabel = isViewOnce ? 'Viewed' : 'Downloaded';
+
             return (
               <li key={file.id} className="download-row">
-                <div className="download-row-meta">
-                  <span className="file-row-name">
-                    {file.original_filename}
-                  </span>
-                  <span className="file-row-size">
-                    {formatBytes(file.size_bytes)}
-                  </span>
+                <div className="download-row-main">
+                  <div className="download-row-meta">
+                    <span className="file-row-name">
+                      {file.original_filename}
+                    </span>
+                    <span className="file-row-size">
+                      {formatBytes(file.size_bytes)}
+                      {isViewOnce && !isExhausted && ' · viewable once'}
+                      {isSingleDownloadLimit &&
+                        !isExhausted &&
+                        ' · downloadable once'}
+                    </span>
+                  </div>
+
+                  {isExhausted ? (
+                    <span className="status-note file-exhausted-tag">
+                      {exhaustedLabel}
+                    </span>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={() => handleDownload(file.id)}
+                      disabled={downloadingId === file.id}
+                    >
+                      {downloadingId === file.id
+                        ? 'Opening…'
+                        : isViewOncePreview
+                          ? 'View once'
+                          : isViewOnce
+                            ? 'Download (one time)'
+                            : 'Download'}
+                    </Button>
+                  )}
                 </div>
-                {isViewed ? (
-                  <span className="status-note view-once-consumed-tag">
-                    Viewed
-                  </span>
-                ) : (
-                  <Button
-                    size="sm"
-                    onClick={() => handleDownload(file.id)}
-                    disabled={downloadingId === file.id}
-                  >
-                    {downloadingId === file.id
-                      ? 'Opening…'
-                      : isViewOnce && isPreviewable
-                        ? 'View once'
-                        : isViewOnce
-                          ? 'Download (one time)'
-                          : 'Download'}
-                  </Button>
+
+                {preview && (
+                  <div className="view-once-preview">
+                    <div className="received-text-toolbar">
+                      <span className="received-text-hint">
+                        Gone if you leave or refresh this page
+                      </span>
+                      {preview.downloadUrl && (
+                        <a
+                          className="received-copy-btn"
+                          href={preview.downloadUrl}
+                          download={preview.filename}
+                        >
+                          Download
+                        </a>
+                      )}
+                    </div>
+                    {preview.contentType.startsWith('image/') ? (
+                      <img
+                        className="view-once-preview-image"
+                        src={preview.url}
+                        alt={preview.filename}
+                      />
+                    ) : preview.contentType === 'application/pdf' ? (
+                      <iframe
+                        className="view-once-preview-frame view-once-preview-frame-pdf"
+                        src={preview.url}
+                        title={preview.filename}
+                      />
+                    ) : (
+                      <iframe
+                        className="view-once-preview-frame view-once-preview-text"
+                        src={preview.url}
+                        title={preview.filename}
+                      />
+                    )}
+                  </div>
                 )}
               </li>
             );
           })}
         </ul>
-      )}
-
-      {previewFile && (
-        <div className="view-once-preview">
-          <div className="received-text-toolbar">
-            <span className="received-text-hint">
-              {previewFile.filename} · viewable once — gone if you leave or
-              refresh this page
-            </span>
-          </div>
-          {previewFile.contentType.startsWith('image/') ? (
-            <img
-              className="view-once-preview-image"
-              src={previewFile.url}
-              alt={previewFile.filename}
-            />
-          ) : previewFile.contentType === 'application/pdf' ? (
-            <iframe
-              className="view-once-preview-frame"
-              src={previewFile.url}
-              title={previewFile.filename}
-            />
-          ) : (
-            <iframe
-              className="view-once-preview-frame view-once-preview-text"
-              src={previewFile.url}
-              title={previewFile.filename}
-            />
-          )}
-        </div>
+        </>
       )}
 
       {consumedNotice && <p className="status-note">{consumedNotice}</p>}

@@ -16,6 +16,27 @@ from app.workers.background_loop import run_periodic_sweep
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # create_all only creates missing tables, never alters existing
+        # ones - on a database that already has a drop_files table from
+        # before per-file view-once/download tracking existed, add the
+        # columns by hand. Safe to run on every startup and on a fresh
+        # database.
+        await conn.exec_driver_sql(
+            "ALTER TABLE drop_files "
+            "ADD COLUMN IF NOT EXISTS consumed BOOLEAN NOT NULL DEFAULT FALSE"
+        )
+        await conn.exec_driver_sql(
+            "ALTER TABLE drop_files "
+            "ADD COLUMN IF NOT EXISTS download_count INTEGER NOT NULL DEFAULT 0"
+        )
+        await conn.exec_driver_sql(
+            "ALTER TABLE drops "
+            "ADD COLUMN IF NOT EXISTS archive_download_count INTEGER NOT NULL DEFAULT 0"
+        )
+        await conn.exec_driver_sql(
+            "ALTER TABLE drops "
+            "ADD COLUMN IF NOT EXISTS archive_storage_key VARCHAR(1024)"
+        )
     storage_service.ensure_bucket()
 
     sweep_task = None

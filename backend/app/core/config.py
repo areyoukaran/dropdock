@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,12 +24,16 @@ class Settings(BaseSettings):
     s3_region: str = "us-east-1"
     s3_use_ssl: bool = False
 
-    rate_limit_uploads_per_hour: int = 20
+    rate_limit_uploads_per_window: int = 10
+    rate_limit_upload_window_seconds: int = 600
     rate_limit_downloads_per_minute: int = 30
-    rate_limit_password_attempts_per_minute: int = 5
+    rate_limit_password_attempts_per_window: int = 10
+    rate_limit_password_attempt_window_seconds: int = 600
 
-    max_file_size_mb: int = 500
-    max_drop_size_mb: int = 1000
+    max_file_size_mb: int = 50
+    max_drop_size_mb: int = 100
+    max_files_per_drop: int = 5
+    max_text_length: int = 250_000
 
     # Comma-separated list of origins the frontend is served from.
     # Defaults to local dev ports; must include the real deployed frontend
@@ -55,6 +60,22 @@ class Settings(BaseSettings):
     @property
     def max_drop_size_bytes(self) -> int:
         return self.max_drop_size_mb * 1024 * 1024
+
+    @model_validator(mode="after")
+    def validate_production_settings(self):
+        if self.environment.lower() not in {"production", "prod"}:
+            return self
+
+        if self.secret_key in {"", "change-me-in-production"} or len(self.secret_key) < 32:
+            raise ValueError("SECRET_KEY must be a unique value of at least 32 characters in production")
+        if not self.base_url.startswith("https://"):
+            raise ValueError("BASE_URL must use HTTPS in production")
+        if any("localhost" in origin or "127.0.0.1" in origin for origin in self.cors_origins_list):
+            raise ValueError("CORS_ALLOWED_ORIGINS must not contain local origins in production")
+        if self.s3_access_key == "dropdock" or self.s3_secret_key == "dropdock123":
+            raise ValueError("S3 credentials must be changed from the local development defaults in production")
+
+        return self
 
 
 @lru_cache

@@ -10,6 +10,7 @@ from app.core.security import generate_slug, hash_password
 from app.models.drop import DropType, ExpiryMode
 from app.schemas.drop import (
     CreateTextDropRequest,
+    ArchiveDownloadUrlOut,
     DownloadUrlOut,
     DropFileOut,
     DropMetaOut,
@@ -53,7 +54,7 @@ def _to_drop_out(drop, request: Request) -> DropOut:
         download_count=drop.download_count,
         has_password=drop.password_hash is not None,
         created_at=drop.created_at,
-        files=[DropFileOut.from_model(f) for f in drop.files] if drop.files else [],
+        files=[DropFileOut.from_model(f, drop.max_downloads) for f in drop.files] if drop.files else [],
         share_url=f"{settings.base_url}/d/{drop.slug}",
     )
 
@@ -73,6 +74,11 @@ async def create_text_drop(
         raise HTTPException(400, detail="time_expiry is required when expiry_mode is 'time'")
     if payload.expiry_mode == ExpiryModeSchema.DOWNLOAD_COUNT and not payload.max_downloads:
         raise HTTPException(400, detail="max_downloads is required when expiry_mode is 'download_count'")
+    if len(payload.text_content) > settings.max_text_length:
+        raise HTTPException(
+            413,
+            detail=f"Text exceeds the {settings.max_text_length} character limit",
+        )
 
     expires_at = drop_service.resolve_expires_at(payload.time_expiry)
     password_hash = hash_password(payload.password) if payload.password else None
@@ -116,12 +122,12 @@ async def create_file_drop(
     total_size = 0
 
     for f in files:
-        size = f.size
-        if size is None:
-            current_position = f.file.tell()
-            f.file.seek(0, 2)
-            size = f.file.tell()
-            f.file.seek(current_position)
+        if f.filename and len(f.filename) > 512:
+            raise HTTPException(422, detail=f"'{f.filename[:80]}' has a filename longer than 512 characters")
+        current_position = f.file.tell()
+        f.file.seek(0, 2)
+        size = f.file.tell()
+        f.file.seek(current_position)
 
         if size > settings.max_file_size_bytes:
             raise HTTPException(413, detail=f"'{f.filename}' exceeds the {settings.max_file_size_mb}MB per-file limit")
@@ -131,6 +137,15 @@ async def create_file_drop(
 
     if total_size > settings.max_drop_size_bytes:
         raise HTTPException(413, detail=f"Total drop size exceeds the {settings.max_drop_size_mb}MB limit")
+
+    if len(files) > settings.max_files_per_drop:
+        raise HTTPException(
+            413,
+            detail=f"A drop can contain at most {settings.max_files_per_drop} files",
+        )
+
+    if password is not None and not 4 <= len(password) <= 128:
+        raise HTTPException(422, detail="Password must be between 4 and 128 characters")
 
     # Validate expiry settings BEFORE touching object storage.
     try:
@@ -171,6 +186,7 @@ async def create_file_drop(
     try:
         for f, size in zip(files, file_sizes):
             contents_key = f"drops/{slug}/{uuid.uuid4()}"
+            f.file.seek(0)
 
             # boto3 is synchronous, so don't block FastAPI's event loop.
             await asyncio.to_thread(
@@ -218,23 +234,6 @@ async def create_file_drop(
         raise
 
     return _to_drop_out(drop, request)
-    password_hash = hash_password(password) if password else None
-    drop_type = DropType.FILE if len(files) == 1 else DropType.BATCH
-
-    async with AsyncSessionLocal() as db:
-        drop = await drop_service.create_file_drop(
-            db,
-            slug=slug,
-            drop_type=drop_type,
-            expiry_mode=ExpiryMode(expiry_mode.value),
-            expires_at=expires_at,
-            max_downloads=max_downloads,
-            password_hash=password_hash,
-            files_meta=files_meta,
-        )
-        drop = await drop_service.get_drop_with_files(db, drop.slug)
-
-    return _to_drop_out(drop, request)
 
 
 @router.get("/{slug}/meta", response_model=DropMetaOut)
@@ -253,13 +252,14 @@ async def get_drop_meta(slug: str, db: AsyncSession = Depends(get_db)):
         slug=drop.slug,
         drop_type=drop.drop_type.value,
         expiry_mode=drop.expiry_mode.value,
+        max_downloads=drop.max_downloads,
         requires_password=drop.password_hash is not None,
         is_expired=drop.is_expired(),
         # Filenames and sizes are real content metadata, not safe to expose
         # ahead of a password check - a password-protected drop's file list
         # must stay hidden until the password has been verified server-side.
         files=(
-            [DropFileOut.from_model(f) for f in drop.files]
+            [DropFileOut.from_model(f, drop.max_downloads) for f in drop.files]
             if drop.files and drop.password_hash is None
             else []
         ),
@@ -338,7 +338,7 @@ async def unlock_file_drop(
     except drop_service.DropPasswordIncorrectError:
         raise HTTPException(403, detail="Incorrect password")
 
-    return [DropFileOut.from_model(f) for f in drop.files]
+    return [DropFileOut.from_model(f, drop.max_downloads) for f in drop.files]
 
 
 @router.post("/{slug}/download/{file_id}", response_model=DownloadUrlOut)
@@ -362,6 +362,12 @@ async def get_download_url(
     if drop.is_expired():
         raise HTTPException(410, detail="This drop has expired")
 
+    if drop.password_hash is not None:
+        try:
+            await password_attempt_rate_limit(_client_ip(request), slug)
+        except RateLimitExceeded as e:
+            raise HTTPException(429, detail=f"Too many attempts. Try again in {e.retry_after}s")
+
     try:
         drop_service.check_password(drop, payload.password if payload else None)
     except drop_service.DropPasswordRequiredError:
@@ -374,17 +380,27 @@ async def get_download_url(
         raise HTTPException(404, detail="File not found in this drop")
 
     if drop.expiry_mode == ExpiryMode.VIEW_ONCE:
-        consumed = await drop_service.try_consume_view_once(db, drop.id)
+        # Per-file, not per-drop: a batch of view-once files gives each
+        # file its own single reveal, so opening one doesn't retire the
+        # rest of the drop.
+        consumed = await drop_service.try_consume_file_view_once(db, target_file.id)
         if not consumed:
-            raise HTTPException(410, detail="This drop has already been viewed")
+            raise HTTPException(410, detail="This file has already been viewed")
     elif drop.max_downloads is not None:
-        consumed = await drop_service.try_consume_download(db, drop.id)
+        # Same per-file reasoning: the drop's max_downloads is each file's
+        # own allowance, so downloading one file of a batch never locks
+        # out the others.
+        consumed = await drop_service.try_consume_file_download(
+            db, target_file.id, drop.max_downloads
+        )
         if not consumed:
-            raise HTTPException(410, detail="This drop has reached its download limit")
+            raise HTTPException(410, detail="This file has reached its download limit")
 
-    # View-once files are meant to be *seen*, not kept: when the type can be
-    # rendered by the browser, hand back an inline URL instead of a forced
-    # download, and expire it fast since it's only ever opened once anyway.
+    # View-once files are meant to be *seen*, not silently forced into a
+    # download: when the type can be rendered by the browser, hand back an
+    # inline URL for the in-page preview, plus a second signed URL (forced
+    # attachment) to the same object so the person can also save a copy -
+    # both from this single reveal, since a second request would 410.
     inline = drop.expiry_mode == ExpiryMode.VIEW_ONCE and drop_service.is_previewable(
         target_file.content_type
     )
@@ -395,10 +411,126 @@ async def get_download_url(
         expires_in=expires_in,
         inline=inline,
     )
+    download_url = (
+        storage_service.generate_download_url(
+            target_file.storage_key,
+            target_file.original_filename,
+            expires_in=expires_in,
+            inline=False,
+        )
+        if inline
+        else None
+    )
     return DownloadUrlOut(
         filename=target_file.original_filename,
         url=url,
         content_type=target_file.content_type,
         size_bytes=target_file.size_bytes,
         disposition="inline" if inline else "attachment",
+        download_url=download_url,
     )
+
+
+@router.post("/{slug}/download-archive", response_model=ArchiveDownloadUrlOut)
+async def get_archive_download_url(
+    slug: str,
+    request: Request,
+    payload: UnlockRequest | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        await download_rate_limit(_client_ip(request))
+    except RateLimitExceeded as e:
+        raise HTTPException(429, detail=f"Too many downloads. Try again in {e.retry_after}s")
+
+    try:
+        drop = await drop_service.get_drop_with_files(db, slug)
+    except drop_service.DropNotFoundError:
+        raise HTTPException(404, detail="Drop not found")
+
+    if drop.drop_type != DropType.BATCH:
+        raise HTTPException(400, detail="Archive downloads are only available for multi-file drops")
+    if drop.expiry_mode == ExpiryMode.VIEW_ONCE:
+        raise HTTPException(400, detail="Archive downloads are not available for view-once drops")
+    if drop.is_expired():
+        raise HTTPException(410, detail="This drop has expired")
+
+    if drop.password_hash is not None:
+        try:
+            await password_attempt_rate_limit(_client_ip(request), slug)
+        except RateLimitExceeded as e:
+            raise HTTPException(429, detail=f"Too many attempts. Try again in {e.retry_after}s")
+
+    try:
+        drop_service.check_password(drop, payload.password if payload else None)
+    except drop_service.DropPasswordRequiredError:
+        raise HTTPException(401, detail="Password required")
+    except drop_service.DropPasswordIncorrectError:
+        raise HTTPException(403, detail="Incorrect password")
+
+    available_files = [
+        file
+        for file in drop.files
+        if drop.max_downloads is None
+        or file.download_count < drop.max_downloads
+    ]
+    if not available_files:
+        raise HTTPException(410, detail="No files remain available in this drop")
+
+    # Limited drops must build a fresh archive so a file downloaded
+    # individually cannot reappear in a later ZIP. Unlimited, time-expiring
+    # drops can safely reuse their immutable archive.
+    archive_key = drop.archive_storage_key if drop.max_downloads is None else None
+    created_candidate = False
+    if archive_key is None:
+        candidate_key = f"drops/{slug}/{uuid.uuid4()}.zip"
+        try:
+            await asyncio.to_thread(
+                storage_service.create_zip_archive,
+                [(file.storage_key, file.original_filename) for file in available_files],
+                candidate_key,
+            )
+        except Exception:
+            raise HTTPException(503, detail="The archive could not be prepared. Please try again.")
+
+        if drop.max_downloads is None:
+            claimed = await drop_service.try_set_archive_storage_key(
+                db, drop.id, candidate_key
+            )
+            if claimed:
+                archive_key = candidate_key
+                created_candidate = True
+            else:
+                await asyncio.to_thread(storage_service.delete_object, candidate_key)
+                refreshed = await drop_service.get_drop_by_slug(db, slug)
+                archive_key = refreshed.archive_storage_key
+        else:
+            archive_key = candidate_key
+            created_candidate = True
+
+    if archive_key is None:
+        raise HTTPException(503, detail="The archive is not available. Please try again.")
+
+    if drop.max_downloads is not None:
+        consumed = await drop_service.try_consume_archive_download(
+            db, drop.id, drop.max_downloads
+        )
+        if not consumed:
+            if created_candidate:
+                await asyncio.to_thread(storage_service.delete_object, archive_key)
+            raise HTTPException(410, detail="This drop has reached its archive download limit")
+
+    if drop.max_downloads is not None and created_candidate:
+        previous_key = await drop_service.replace_archive_storage_key(
+            db, drop.id, archive_key
+        )
+        if previous_key and previous_key != archive_key:
+            await asyncio.to_thread(storage_service.delete_object, previous_key)
+
+    url = storage_service.generate_download_url(
+        archive_key,
+        f"dropdock-{slug}.zip",
+        expires_in=300,
+        inline=False,
+    )
+    return ArchiveDownloadUrlOut(filename=f"dropdock-{slug}.zip", url=url)

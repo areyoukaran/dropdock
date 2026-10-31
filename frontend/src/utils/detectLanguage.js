@@ -1,5 +1,5 @@
 // Lightweight heuristic language detector for the text composer.
-// Not a parser — just scores a handful of telltale signals per language
+// Not a parser - just scores a handful of telltale signals per language
 // and picks the best match. Falls back to plain text when nothing scores
 // with enough confidence.
 

@@ -62,6 +62,8 @@ class Drop(Base):
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     max_downloads: Mapped[int | None] = mapped_column(Integer, nullable=True)
     download_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    archive_download_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    archive_storage_key: Mapped[str | None] = mapped_column(String(1024), nullable=True)
 
     # view_once text is marked consumed after first render, never gets a raw link
     consumed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -94,6 +96,11 @@ class Drop(Base):
             return True
 
         if self.expiry_mode == ExpiryMode.VIEW_ONCE:
+            # Text drops (no DropFile rows) keep the original drop-level
+            # flag. File/batch drops are expired once every file has had
+            # its one reveal - not the instant the first one is opened.
+            if self.files:
+                return all(f.consumed for f in self.files)
             return self.consumed
 
         time_expired = False
@@ -107,6 +114,19 @@ class Drop(Base):
             return True
 
         if self.max_downloads is not None:
-            return self.download_count >= self.max_downloads
+            # Same per-file reasoning as VIEW_ONCE above: a batch's
+            # download limit applies to each file individually, so the
+            # drop as a whole is only spent once every file has reached
+            # its own limit.
+            files_exhausted = (
+                all(f.download_count >= self.max_downloads for f in self.files)
+                if self.files
+                else self.download_count >= self.max_downloads
+            )
+            archive_exhausted = (
+                self.drop_type != DropType.BATCH
+                or (self.archive_download_count or 0) >= self.max_downloads
+            )
+            return files_exhausted and archive_exhausted
 
         return False
